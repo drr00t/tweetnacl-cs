@@ -28,8 +28,6 @@ public class TweetNaCl
     public static Int32 SECRETBOX_OVERHEAD_BYTES = 16;
     public static Int32 HASH_SIZE_BYTES = 64; // SHA-512
 
-    private static Int32 SECRETBOX_INTERNAL_OVERHEAD_BYTES = 32;
-
     public class InvalidSignatureException: CryptographicException {}
     public class InvalidCipherTextException: CryptographicException {}
 
@@ -37,6 +35,7 @@ public class TweetNaCl
     private static Byte[] _9 = new Byte[32]{9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
    
     private const Int32 GF_LEN = 16;
+    private static Int64[] GF = new Int64[GF_LEN];
     private static Int64[] GF0 = new Int64[GF_LEN];
     private static Int64[] GF1 = new Int64[GF_LEN]{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
@@ -57,9 +56,9 @@ public class TweetNaCl
           return (u<<8)|x[0 + offset];
     }
     
-    public static Int64 Dl64(Byte[] x, Int64 offset)
+    public static UInt64 Dl64(Byte[] x, Int64 offset)
     {
-        Int64 u=0;
+        UInt64 u=0;
         for (var i = 0; i < 8; ++i) u = (u << 8) | x[i + offset];
         return u;
     }
@@ -73,7 +72,7 @@ public class TweetNaCl
         }
     }
 
-    private static void Ts64(Byte[] x, Int64 u, Int32 offset = 0)
+    private static void Ts64(Byte[] x, UInt64 u, Int32 offset = 0)
     {
         for (var i = 7; i >= 0; --i) 
         { 
@@ -738,15 +737,15 @@ public class TweetNaCl
         return CryptoBoxOpenAfternm(m, c, d, n, k);
     }
 
-    private static Int64 R(Int64 x,int c) { return (x >> c) | (x << (64 - c)); }
-    private static Int64 Ch(Int64 x,Int64 y,Int64 z) { return (x & y) ^ (~x & z); }
-    private static Int64 Maj(Int64 x,Int64 y,Int64 z) { return (x & y) ^ (x & z) ^ (y & z); }
-    private static Int64 Sigma0(Int64 x) { return R(x,28) ^ R(x,34) ^ R(x,39); }
-    private static Int64 Sigma1(Int64 x) { return R(x,14) ^ R(x,18) ^ R(x,41); }
-    private static Int64 sigma0(Int64 x) { return R(x, 1) ^ R(x, 8) ^ (x >> 7); }
-    private static Int64 sigma1(Int64 x) { return R(x,19) ^ R(x,61) ^ (x >> 6); }
+    private static UInt64 R(UInt64 x,int c) { return (x >> c) | (x << (64 - c)); }
+    private static UInt64 Ch(UInt64 x,UInt64 y,UInt64 z) { return (x & y) ^ (~x & z); }
+    private static UInt64 Maj(UInt64 x,UInt64 y,UInt64 z) { return (x & y) ^ (x & z) ^ (y & z); }
+    private static UInt64 Sigma0(UInt64 x) { return R(x,28) ^ R(x,34) ^ R(x,39); }
+    private static UInt64 Sigma1(UInt64 x) { return R(x,14) ^ R(x,18) ^ R(x,41); }
+    private static UInt64 sigma0(UInt64 x) { return R(x, 1) ^ R(x, 8) ^ (x >> 7); }
+    private static UInt64 sigma1(UInt64 x) { return R(x,19) ^ R(x,61) ^ (x >> 6); }
 
-    private static const UInt64[] K = new UInt64[80]
+    private static UInt64[] K = new UInt64[80]
     {
       0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc,
       0x3956c25bf348b538, 0x59f111f1b605d019, 0x923f82a4af194f9b, 0xab1c5ed5da6d8118,
@@ -770,66 +769,70 @@ public class TweetNaCl
       0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
     };
 
-    private static Int32 CryptoHashBlocks(Byte[] x, Byte[] m, Int64 n)
+    private static Int32 CryptoHashBlocks(Byte[] x, Byte[] m, UInt64 n)
     {
-        Int64[] z = new Int64[8];
-        Int64[] b = new Int64[8];
-        Int64[] a = new Int64[8];
-        Int64[] w = new Int64[16];
-        Int64 t = 0;
+        UInt64[] z = new UInt64[8];
+        UInt64[] b = new UInt64[8];
+        UInt64[] a = new UInt64[8];
+        UInt64[] w = new UInt64[16];
+        UInt64 t = 0;
 
         for (var i = 0; i < 8; i++)
         {
             z[i] = a[i] = Dl64(x, 8*i);
         }
 
-          while (n >= 128) 
-          {
-             for(var i = 0; i < 16; i++)
-             {
-                 w[i] = Dl64(m,8*i);
-             }
-
-            for(var i = 0; i < 80; i++)
+        while (n >= 128)
+        {
+            for (var i = 0; i < 16; i++)
             {
-              for(var j = 0; j < 8; j++)
-              {
-                  b[j] = a[j];
-              }
+                w[i] = Dl64(m, 8 * i);
+            }
 
-              t = a[7] + Sigma1(a[4]) + Ch(a[4],a[5],a[6]) + K[i] + w[i%16];
-              b[7] = t + Sigma0(a[0]) + Maj(a[0],a[1],a[2]);
-              b[3] += t;
-              for(var j = 0; j < 8; j++)
-              {
-                  a[(j+1)%8] = b[j];
-              }
-
-              if (i%16 == 15)
-	            for(var j = 0; j < 16; j++)
+            for (var i = 0; i < 80; i++)
+            {
+                for (var j = 0; j < 8; j++)
                 {
-                    w[j] += w[(j+9)%16] + sigma0(w[(j+1)%16]) + sigma1(w[(j+14)%16]);
-                }	          
+                    b[j] = a[j];
+                }
+
+                t = a[7] + Sigma1(a[4]) + Ch(a[4], a[5], a[6]) + K[i] + w[i % 16];
+                b[7] = t + Sigma0(a[0]) + Maj(a[0], a[1], a[2]);
+                b[3] += t;
+                for (var j = 0; j < 8; j++)
+                {
+                    a[(j + 1) % 8] = b[j];
+                }
+
+                if (i % 16 == 15)
+                    for (var j = 0; j < 16; j++)
+                    {
+                        w[j] += w[(j + 9) % 16] + sigma0(w[(j + 1) % 16]) + sigma1(w[(j + 14) % 16]);
+                    }
             }
 
-            for(var i = 0; i < 8; i++)
+            for (var i = 0; i < 8; i++)
             {
-                a[i] += z[i]; z[i] = a[i]; 
+                a[i] += z[i]; z[i] = a[i];
             }
 
-            m += 128;
+            for (var i = 0; i < m.Length; i++)
+            {
+                m[i] += 128;
+            }
+            
             n -= 128;
-          }
+        }
 
-          for (var i = 0; i < 8; i++)
-          {
-              Ts64(x, z[i], 8*i);
-          }
+        for (var i = 0; i < 8; i++)
+        {
+            Ts64(x, z[i], 8 * i);
+        }
 
         return (Int32)n;
     }
 
-    private static const Byte[] iv = new Byte[64]{
+    private static Byte[] iv = new Byte[64]{
           0x6a,0x09,0xe6,0x67,0xf3,0xbc,0xc9,0x08,
           0xbb,0x67,0xae,0x85,0x84,0xca,0xa7,0x3b,
           0x3c,0x6e,0xf3,0x72,0xfe,0x94,0xf8,0x2b,
@@ -840,42 +843,50 @@ public class TweetNaCl
           0x5b,0xe0,0xcd,0x19,0x13,0x7e,0x21,0x79
     };
 
-    private static Int32 CryptoHash(Byte[] pout, Byte[] m, Int32 n) 
+    private static Int32 CryptoHash(Byte[] pout, Byte[] m, UInt64 n) 
     {
         Byte[] h = new Byte[64];
         Byte[] x = new Byte[256];
-        Byte b = n;
+        UInt64 b = n;
 
         for(var i=0; i < 64; i++)
         {
             h[i] = iv[i];
         }
 
-        CryptoHashBlocks(h,m,n);
+        CryptoHashBlocks(h, m, n);
 
         for (var i = 0; i < 64; i++)
         {
-            //m += n;
-            //n &= 127;
-            //m -= n;
+            for (var j = 0; j < m.Length; j++)
+            {
+                m[j] += (Byte)n;
+            }
+            
+            n &= 127;
+
+            for (var j = 0; j < m.Length; j++)
+            {
+                m[j] -= (Byte)n;
+            }
         }
 
-        for(var i=0; i < 256; i++)
+        for (var i = 0; i < 256; i++)
         {
             x[i] = 0;
         }
 
-        for(var i=0; i < n; i++)
+        for (UInt64 i = 0; i < n; i++)
         {
             x[i] = m[i];
         }
 
         x[n] = 128;
 
-        //n = 256-128*(n<112);
-        //x[n-9] = b >> 61;
+        n = (UInt64)((n < 112)? 256 - 128 * 1: 256 - 128 * 0);
+        x[n - 9] = (Byte)(b >> 61);
         
-        Ts64(x, b<<3, n-8);
+        Ts64(x, b<<3, (Int32)n-8);
         
         CryptoHashBlocks(h,x,n);
 
@@ -884,6 +895,316 @@ public class TweetNaCl
             pout[i] = h[i];
         }
 
+        return 0;
+    }
+
+    private static void Add(Int64[][] p, Int64[][] q)
+    {
+        Int64[] a = new Int64[GF_LEN],
+                b = new Int64[GF_LEN], 
+                c = new Int64[GF_LEN], 
+                d = new Int64[GF_LEN], 
+                t = new Int64[GF_LEN], 
+                e = new Int64[GF_LEN], 
+                f = new Int64[GF_LEN], 
+                g = new Int64[GF_LEN], 
+                h = new Int64[GF_LEN]
+                ;
+  
+          Z(a, p[1], p[0]);
+          Z(t, q[1], q[0]);
+          M(a, 0, a, 0, t, 0);
+          A(b, p[0], p[1]);
+          A(t, q[0], q[1]);
+          M(b, 0, b, 0, t, 0);
+          M(c, 0, p[3], 0, q[3], 0);
+          M(c, 0, c, 0, D2, 0);
+          M(d, 0, p[2], 0, q[2], 0);
+          A(d, d, d);
+          Z(e, b, a);
+          Z(f, d, c);
+          A(g, d, c);
+          A(h, b, a);
+
+          M(p[0], 0, e, 0, f, 0);
+          M(p[1], 0, h, 0, g, 0);
+          M(p[2], 0, g, 0, f, 0);
+          M(p[3], 0, e, 0, h, 0);
+    }
+
+    private static void Cswap(Int64[][] /*gf*/ p/*[4]*/, Int64[][] /*gf*/ q/*[4]*/, Byte b)
+    {
+        for (var i = 0; i < 4; i++)
+            Sel25519(p[i], q[i], b & 0xff);
+    }
+
+    private static void Pack(Byte[] r, Int64[][] /*gf*/ p/*[4]*/)
+    {
+        Int64[] /*gf*/ tx = new Int64[GF_LEN], ty = new Int64[GF_LEN], zi = new Int64[GF_LEN];
+        
+        Inv25519(zi, 0, p[2], 0);
+        M(tx, 0, p[0], 0, zi, 0);
+        M(ty, 0, p[1], 0, zi, 0);
+
+        Pack25519(r, ty, 0);
+        
+        r[31] ^= (Byte)(Par25519(tx) << 7);
+    }
+
+    private static void Scalarmult(Int64[][] /*gf*/ p /*[4]*/ , Int64[][] /*gf*/ q /*[4]*/, Byte[] s, Int32 sOffset)
+    {
+        Set25519(p[0], GF0);
+        Set25519(p[1], GF1);
+        Set25519(p[2], GF1);
+        Set25519(p[3], GF0);
+
+        for (var i = 255; i >= 0; --i)
+        {
+            Byte b = (Byte)(((0xff & s[sOffset + i / 8]) >> (i & 7)) & 1);
+            Cswap(p, q, b);
+            Add(q, p);
+            Add(p, p);
+            Cswap(p, q, b);
+        }
+    }
+
+    private static void Scalarbase(Int64[][] /*gf*/ p/*[4]*/, Byte[] s,  Int32 sOffset)
+    {
+        Int64[][] /*gf*/ q = new Int64[4][] { new Int64[16], new Int64[16], new Int64[16], new Int64[16]};
+        Set25519(q[0],X);
+        Set25519(q[1],Y);
+        Set25519(q[2],GF1);
+        M(q[3], 0, X, 0, Y, 0);
+        Scalarmult(p, q, s, sOffset);
+    }
+
+    private static Int64[] L = {0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58,
+            0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0x10};
+
+    private static void ModL(Byte[] r, Int32 rOffset, Int64[] x/*[64]*/)
+    {
+        Int64 carry;
+        Int32 i, j;
+        for (i = 63; i >= 32; --i)
+        {
+            carry = 0;
+            for (j = i - 32; j < i - 12; ++j)
+            {
+                x[j] += carry - 16 * x[i] * L[j - (i - 32)];
+                carry = (x[j] + 128) >> 8;
+                x[j] -= carry << 8;
+            }
+            x[j] += carry;
+            x[i] = 0;
+        }
+        carry = 0;
+
+        for (j = 0; j < 32; ++j)
+        {
+            x[j] += carry - (x[31] >> 4) * L[j];
+            carry = x[j] >> 8;
+            x[j] &= 255;
+        }
+
+        for (j = 0; j < 32; ++j)
+        {
+            x[j] -= carry * L[j];
+        }
+
+        for (i = 0; i < 32; ++i)
+        {
+            x[i + 1] += x[i] >> 8;
+            r[rOffset + i] = (Byte)(x[i] & 255);
+        }
+    }
+
+    private static void Reduce(Byte[] r)
+    {
+        Int64[] x = new Int64[64];
+        for (int i = 0; i < 64; i++)
+        {
+            x[i] = 0xff & r[i];
+        }
+
+        for (int i = 0; i < 64; ++i)
+        {
+            r[i] = 0;
+        }
+
+        ModL(r, 0, x);
+    }
+
+    private static Int32 CryptoSign(Byte[] sm, Byte[] m, UInt64 n, Byte[] sk)
+    {
+        Byte[] d = new Byte[64];
+        Byte[] h = new Byte[64];
+        Byte[] r = new Byte[64];
+        Int64[] x = new Int64[64];
+        Int64[][] /*gf*/ p/*[4]*/ = new Int64[4][]{ new Int64[16], new Int64[16], new Int64[16], new Int64[16]};
+
+        CryptoHash(d, sk, 32);
+
+        d[0] &= 248;
+        d[31] &= 127;
+        d[31] |= 64;
+
+//        smlen[0] = n+64;
+        for (UInt64 i = 0; i < n; ++i)
+        {
+            sm[64 + i] = m[i];
+        }
+
+        for (var i = 0; i < 32; ++i)
+        {
+            sm[32 + i] = d[32 + i];
+        }
+
+        Byte[] smd = new Byte[32];
+        Array.Copy(sm, 32, smd, 0, sm.Length);
+        CryptoHash(r, smd, n + 32);
+
+        Reduce(r);
+        Scalarbase(p, r, 0);
+        Pack(sm, p);
+
+        for (int i = 0; i < 32; ++i)
+        {
+            sm[i + 32] = sk[i + 32];
+        }
+
+        CryptoHash(h, sm, n + 64);
+        Reduce(h);
+
+        for (var i = 0; i < 64; ++i)
+        {
+            x[i] = 0;
+        }
+
+        for (var i = 0; i < 32; ++i)
+        {
+            x[i] = 0xff & r[i];
+        }
+
+        for (var i = 0; i < 32; ++i)
+        {
+            for (int j = 0; j < 32; ++j)
+            {
+                x[i + j] += (0xff & h[i]) * (0xff & d[j]);
+            }
+        }
+
+        ModL(sm, 32,x);
+
+        return 0;
+    }
+
+    private static Int32 Unpackneg(Int64[][] /*gf*/ r/*[4]*/, Byte[] p/*[32]*/)
+    {
+        Int64[] /*gf*/ t = new Int64[GF_LEN], 
+            chk = new Int64[GF_LEN], 
+            num = new Int64[GF_LEN], 
+            den = new Int64[GF_LEN],
+            den2 = new Int64[GF_LEN], 
+            den4 = new Int64[GF_LEN], 
+            den6 = new Int64[GF_LEN];
+
+        Set25519(r[2], GF1);
+        Unpack25519(r[1], p);
+        S(num, r[1]);
+        M(den, 0, num, 0, D, 0);
+        Z(num, num, r[2]);
+        A(den, r[2], den);
+
+        S(den2, den);
+        S(den4, den2);
+        M(den6, 0, den4, 0, den2, 0);
+        M(t, 0, den6, 0, num, 0);
+        M(t, 0, t, 0, den, 0);
+
+        Pow2523(t, t);
+        M(t, 0, t, 0, num, 0);
+        M(t, 0, t, 0, den, 0);
+        M(t, 0, t, 0, den, 0);
+        M(r[0], 0, t, 0, den, 0);
+
+        S(chk, r[0]);
+        M(chk, 0, chk, 0, den, 0);
+        if (Neq25519(chk, num) != 0)
+        {
+            M(r[0], 0, r[0], 0, I, 0);
+        }
+
+        S(chk, r[0]);
+        M(chk, 0, chk, 0, den, 0);
+        if (Neq25519(chk, num) != 0)
+        {
+            return -1;
+        }
+
+        if (Par25519(r[0]) == ((0xff & p[31]) >> 7))
+        {
+            Z(r[0], GF0, r[0]);
+        }
+
+        M(r[3], 0, r[0], 0, r[1], 0);
+
+        return 0;
+    }
+
+    private static Int32 CryptoSignOpen(Byte[] m, Byte[] sm, UInt64 n, Byte[] pk)
+    {
+        Byte[] t = new Byte[32];
+        Byte[] h = new Byte[64];
+        Int64[][] /*gf*/ p = new Int64[4][] { new Int64[16], new Int64[16], new Int64[16], new Int64[16] };
+        Int64[][] /*gf*/ q = new Int64[4][] { new Int64[16], new Int64[16], new Int64[16], new Int64[16] };
+
+        //        mlen[0] = -1;
+        if (n < 64)
+        {
+            return -1;
+        }
+
+        if (Unpackneg(q, pk) != 0)
+        {
+            return -1;
+        }
+
+        for (UInt64 i = 0; i < n; ++i)
+        {
+            m[i] = sm[i];
+        }
+
+        for (var i = 0; i < 32; ++i)
+        {
+            m[i + 32] = pk[i];
+        }
+
+        CryptoHash(h, m, n);
+        Reduce(h);
+        Scalarmult(p, q, h, 0);
+
+        Scalarbase(q, sm, 32);
+        Add(p, q);
+        Pack(t, p);
+
+        n -= 64;
+        if (CryptoVerify32(sm, t) != 0)
+        {
+            for (UInt64 i = 0; i < n; ++i)
+            {
+                m[i] = 0;
+            }
+
+            return -1;
+        }
+
+        for (UInt64 i = 0; i < n; ++i)
+        {
+            m[64 + i] = sm[i + 64];
+        }
+        //        mlen[0] = n;
         return 0;
     }
 
