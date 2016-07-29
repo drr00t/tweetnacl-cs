@@ -288,19 +288,18 @@ namespace Nacl
 
         private static Int32[] Minusp = new Int32[17] { 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252 };
 
-        private static Int32 CryptoOnetimeAuth(Byte[] pout, Int32 outOffset, Byte[] m, Int64 mOffset, Int64 n, Byte[] k)
+        private static Int32 CryptoOnetimeAuth(Byte[] pout, Int32 poutOffset, Byte[] m, Int64 mOffset, Int64 n, Byte[] k)
         {
-            Int32 l = 0, u = 0, s = 0;
+            Int32 i = 0, j = 0, u = 0, s = 0;
             Int32[] x = new Int32[17], r = new Int32[17], h = new Int32[17], c = new Int32[17], g = new Int32[17];
 
-            for (var j = 0; j < 17; ++j)
+            for (j = 0; j < 17; ++j)
             {
                 r[j] = 0;
                 h[j] = 0;
             }
-
-
-            for (var j = 0; j < 16; ++j)
+            
+            for (j = 0; j < 16; ++j)
             {
                 r[j] = 0xff & k[j];
             }
@@ -315,29 +314,29 @@ namespace Nacl
 
             while (n > 0)
             {
-                for (var j = 0; j < 17; ++j)
+                for (j = 0; j < 17; ++j)
                     c[j] = 0;
 
-                for (Int64 j = 0; (j < 16) && (j < n); ++j)
+                for (j = 0; (j < 16) && (j < n); ++j)
                     c[j] = 0xff & m[mOffset + j];
 
-                c[l] = 1;
-                mOffset += (Int64)l; n -= (Int64)l;
+                c[j] = 1;
+                mOffset += (Int64)j; n -= (Int64)j;
                 Add1305(h, c);
 
-                for (var i = 0; i < 17; ++i)
+                for (i = 0; i < 17; ++i)
                 {
                     x[i] = 0;
 
-                    for (var j = 0; j < 17; ++j)
+                    for (j = 0; j < 17; ++j)
                         x[i] += h[j] * ((j <= i) ? r[i - j] : 320 * r[i + 17 - j]);
                 }
 
-                for (var i = 0; i < 17; ++i)
+                for (i = 0; i < 17; ++i)
                     h[i] = x[i];
 
                 u = 0;
-                for (var j = 0; j < 16; ++j)
+                for (j = 0; j < 16; ++j)
                 {
                     u += h[j];
                     h[j] = u & 255;
@@ -346,7 +345,7 @@ namespace Nacl
                 u += h[16]; h[16] = u & 3;
                 u = 5 * (u >> 2);
 
-                for (var j = 0; j < 16; ++j)
+                for (j = 0; j < 16; ++j)
                 {
                     u += h[j];
                     h[j] = u & 255;
@@ -355,7 +354,7 @@ namespace Nacl
                 u += h[16]; h[16] = u;
             }
 
-            for (var j = 0; j < 17; ++j)
+            for (j = 0; j < 17; ++j)
             {
                 g[j] = h[j];
             }
@@ -363,12 +362,12 @@ namespace Nacl
             Add1305(h, Minusp);
             s = -(h[16] >> 7);
 
-            for (var j = 0; j < 17; ++j)
+            for (j = 0; j < 17; ++j)
             {
                 h[j] ^= s & (g[j] ^ h[j]);
             }
 
-            for (var j = 0; j < 16; ++j)
+            for (j = 0; j < 16; ++j)
             {
                 c[j] = 0xff & k[j + 16];
             }
@@ -377,9 +376,9 @@ namespace Nacl
             c[16] = 0;
             Add1305(h, c);
 
-            for (var j = 0; j < 16; ++j)
+            for (j = 0; j < 16; ++j)
             {
-                pout[outOffset + j] = (Byte)h[j];
+                pout[poutOffset + j] = (Byte)h[j];
             }
 
             return 0;
@@ -400,6 +399,8 @@ namespace Nacl
             }
 
             CryptoStreamXor(c, m, d, n, k);
+
+            // FIXME: i had serious problem here!!!!!!!!!!!!!
             CryptoOnetimeAuth(c, 16, c, 32, d - 32, c);
 
             for (var i = 0; i < 16; ++i)
