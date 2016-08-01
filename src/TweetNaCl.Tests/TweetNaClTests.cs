@@ -34,42 +34,38 @@ namespace NaCl.Tests
         [Test]
         public void TestForGenerateEncryptionKeyPair()
         {
-            Byte[] pk = new Byte[TweetNaCl.BOX_PUBLIC_KEY_BYTES];
-            Byte[] sk = new Byte[TweetNaCl.BOX_SECRET_KEY_BYTES];
+            Byte[] pk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
+            Byte[] sk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
 
-            TweetNaCl.CryptoBoxKeypair(pk,sk);
-
-            String pubKey = Encoding.UTF8.GetString(pk);
-            String secKey = Encoding.UTF8.GetString(sk);
-
-            Assert.AreEqual(pubKey.Count(), TweetNaCl.BOX_PUBLIC_KEY_BYTES);
-            Assert.AreEqual(pubKey.Count(), TweetNaCl.BOX_SECRET_KEY_BYTES);
-
+            var result = TweetNaCl.CryptoBoxKeypair(pk,sk);
+            Assert.AreNotEqual(result, -1, "key generation failed.");
         }
 
         [Test]
         public void TestForMessageEncryptionWithCryptoBoxBeforenm()
         {
-            Byte[] pk = new Byte[TweetNaCl.BOX_PUBLIC_KEY_BYTES];
-            Byte[] sk = new Byte[TweetNaCl.BOX_SECRET_KEY_BYTES];
+            Byte[] pk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
+            Byte[] sk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
 
-            TweetNaCl.CryptoBoxKeypair(pk, sk);
+            var result = TweetNaCl.CryptoBoxKeypair(pk, sk);
+            Assert.AreNotEqual(result, -1, "key generation failed.");
 
             String message = "test";
             Byte[] bMessage = Encoding.UTF8.GetBytes(message);
-            Byte[] paddedMessage = new Byte[32 + bMessage.Length];
-            Byte[] encMessage = new Byte[32 + bMessage.Length];
-            Byte[] nonce = new Byte[24];
-            Byte[] k = new Byte[32];
+            Byte[] paddedMessage = new Byte[TweetNaCl.BOX_ZEROBYTES + bMessage.Length];
+            Byte[] encMessage = new Byte[paddedMessage.Length];
+            Byte[] decMessage = new Byte[encMessage.Length];
+            Byte[] nonce = new Byte[TweetNaCl.BOX_NONCEBYTES];
+            Byte[] k = new Byte[TweetNaCl.BOX_BEFORENMBYTES];
 
 
-            Array.Copy(bMessage, 0, paddedMessage, 32, bMessage.Length);
+            Array.Copy(bMessage, 0, paddedMessage, TweetNaCl.BOX_ZEROBYTES, bMessage.Length);
             TweetNaCl.RandomBytes(nonce);
 
             String pubKey = Encoding.UTF8.GetString(pk);
             String secKey = Encoding.UTF8.GetString(sk);
 
-            var result = TweetNaCl.CryptoBoxBeforenm(k, pk, sk);
+            result = TweetNaCl.CryptoBoxBeforenm(k, pk, sk);
             Assert.AreNotEqual(result, -1,"generation of K for encryption failed.");
         }
 
@@ -78,19 +74,19 @@ namespace NaCl.Tests
         {
             String message = "test";
             Byte[] bMessage = Encoding.UTF8.GetBytes(message);
-            Byte[] pk = new Byte[TweetNaCl.BOX_PUBLIC_KEY_BYTES];
-            Byte[] sk = new Byte[TweetNaCl.BOX_SECRET_KEY_BYTES];
-            Byte[] paddedMessage = new Byte[32 + bMessage.Length];
-            Byte[] encMessage = new Byte[32 + bMessage.Length];
-            Byte[] decMessage = new Byte[16 + bMessage.Length];
-            Byte[] nonce = new Byte[24];
-            Byte[] k = new Byte[32];
+            Byte[] pk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
+            Byte[] sk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
+            Byte[] paddedMessage = new Byte[TweetNaCl.BOX_ZEROBYTES + bMessage.Length];
+            Byte[] encMessage = new Byte[paddedMessage.Length];
+            Byte[] decMessage = new Byte[encMessage.Length];
+            Byte[] nonce = new Byte[TweetNaCl.BOX_NONCEBYTES];
+            Byte[] k = new Byte[TweetNaCl.BOX_BEFORENMBYTES];
 
-            var result = -10;
+            var result = 1;
 
-            Array.Copy(bMessage, 0, paddedMessage, 32, bMessage.Length);
+            Array.Copy(bMessage, 0, paddedMessage, TweetNaCl.BOX_ZEROBYTES, bMessage.Length);
 
-            TweetNaCl.CryptoBoxKeypair(pk, sk);
+            result = TweetNaCl.CryptoBoxKeypair(pk, sk);
             Assert.AreNotEqual(result, -1, "key pair generation failed.");
 
             TweetNaCl.RandomBytes(nonce);
@@ -108,17 +104,17 @@ namespace NaCl.Tests
         {
             String message = "test";
             Byte[] bMessage = Encoding.UTF8.GetBytes(message);
-            Byte[] pk = new Byte[TweetNaCl.BOX_PUBLIC_KEY_BYTES];
-            Byte[] sk = new Byte[TweetNaCl.BOX_SECRET_KEY_BYTES];
-            Byte[] paddedMessage = new Byte[32 + bMessage.Length];
-            Byte[] encMessage = new Byte[32 + bMessage.Length];
-            Byte[] decMessage = new Byte[16 + bMessage.Length];
-            Byte[] nonce = new Byte[24];
-            Byte[] k = new Byte[32];
+            Byte[] pk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
+            Byte[] sk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
+            Byte[] paddedMessage = new Byte[TweetNaCl.BOX_ZEROBYTES + bMessage.Length];
+            Byte[] encMessage = new Byte[paddedMessage.Length];
+            Byte[] decMessage = new Byte[encMessage.Length];
+            Byte[] nonce = new Byte[TweetNaCl.BOX_NONCEBYTES];
+            Byte[] k = new Byte[TweetNaCl.BOX_BEFORENMBYTES];
 
             var result = -10;
 
-            Array.Copy(bMessage, 0, paddedMessage, 32, bMessage.Length);
+            Array.Copy(bMessage, 0, paddedMessage, TweetNaCl.BOX_ZEROBYTES, bMessage.Length);
 
             TweetNaCl.CryptoBoxKeypair(pk, sk);
             Assert.AreNotEqual(result, -1, "key pair generation failed.");
@@ -132,7 +128,7 @@ namespace NaCl.Tests
             result = TweetNaCl.CryptoBoxAfternm(encMessage, paddedMessage, paddedMessage.Length, nonce, k);
             Assert.AreNotEqual(result, -1, "encryption failed.");
 
-            result = TweetNaCl.CryptoBoxOpenAfternm(decMessage, encMessage, paddedMessage.Length, nonce, k);
+            result = TweetNaCl.CryptoBoxOpenAfternm(decMessage, encMessage, encMessage.Length, nonce, k);
             Assert.AreNotEqual(result, -1, "decryption failed.");
         }
 
@@ -142,17 +138,17 @@ namespace NaCl.Tests
         {
             String message = "test";
             Byte[] bMessage = Encoding.UTF8.GetBytes(message);
-            Byte[] pk = new Byte[TweetNaCl.BOX_PUBLIC_KEY_BYTES];
-            Byte[] sk = new Byte[TweetNaCl.BOX_SECRET_KEY_BYTES];
-            Byte[] paddedMessage = new Byte[32 + bMessage.Length];
-            Byte[] encMessage = new Byte[32 + bMessage.Length];
-            Byte[] decMessage = new Byte[16 + bMessage.Length];
-            Byte[] nonce = new Byte[24];
-            Byte[] k = new Byte[32];
+            Byte[] pk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
+            Byte[] sk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
+            Byte[] paddedMessage = new Byte[TweetNaCl.BOX_ZEROBYTES + bMessage.Length];
+            Byte[] encMessage = new Byte[paddedMessage.Length];
+            Byte[] decMessage = new Byte[encMessage.Length];
+            Byte[] nonce = new Byte[TweetNaCl.BOX_NONCEBYTES];
+            Byte[] k = new Byte[TweetNaCl.BOX_BEFORENMBYTES];
 
             var result = -10;
 
-            Array.Copy(bMessage, 0, paddedMessage, 32, bMessage.Length);
+            Array.Copy(bMessage, 0, paddedMessage, TweetNaCl.BOX_ZEROBYTES, bMessage.Length);
 
             TweetNaCl.CryptoBoxKeypair(pk, sk);
             Assert.AreNotEqual(result, -1, "key pair generation failed.");
@@ -167,25 +163,25 @@ namespace NaCl.Tests
         [Test]
         public void TestForMessageDecryptionDifferentKeyPair()
         {
-            Byte[] apk = new Byte[TweetNaCl.BOX_PUBLIC_KEY_BYTES];
-            Byte[] ask = new Byte[TweetNaCl.BOX_SECRET_KEY_BYTES];
+            Byte[] apk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
+            Byte[] ask = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
 
-            Byte[] bpk = new Byte[TweetNaCl.BOX_PUBLIC_KEY_BYTES];
-            Byte[] bsk = new Byte[TweetNaCl.BOX_SECRET_KEY_BYTES];
+            Byte[] bpk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
+            Byte[] bsk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
 
             String message = "test";
             Byte[] bMessage = Encoding.UTF8.GetBytes(message);
-            Byte[] pk = new Byte[TweetNaCl.BOX_PUBLIC_KEY_BYTES];
-            Byte[] sk = new Byte[TweetNaCl.BOX_SECRET_KEY_BYTES];
-            Byte[] paddedMessage = new Byte[32 + bMessage.Length];
-            Byte[] encMessage = new Byte[32 + bMessage.Length];
-            Byte[] decMessage = new Byte[16 + bMessage.Length];
-            Byte[] nonce = new Byte[24];
-            Byte[] k = new Byte[32];
+            Byte[] pk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
+            Byte[] sk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
+            Byte[] paddedMessage = new Byte[TweetNaCl.BOX_ZEROBYTES + bMessage.Length];
+            Byte[] encMessage = new Byte[paddedMessage.Length];
+            Byte[] decMessage = new Byte[encMessage.Length];
+            Byte[] nonce = new Byte[TweetNaCl.BOX_NONCEBYTES];
+            Byte[] k = new Byte[TweetNaCl.BOX_BEFORENMBYTES];
 
             var result = -10;
 
-            Array.Copy(bMessage, 0, paddedMessage, 32, bMessage.Length);
+            Array.Copy(bMessage, 0, paddedMessage, TweetNaCl.BOX_ZEROBYTES, bMessage.Length);
 
             TweetNaCl.CryptoBoxKeypair(apk, ask);
             Assert.AreNotEqual(result, -1, "key pair A generation failed.");

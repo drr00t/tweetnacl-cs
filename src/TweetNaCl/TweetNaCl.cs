@@ -13,23 +13,16 @@ namespace Nacl
 {
     public class TweetNaCl
     {
-
-        public static Int32 crypto_auth_hmacsha512256_tweet_BYTES = 32;
-        public static Int32 crypto_auth_hmacsha512256_tweet_KEYBYTES = 32;
-        public static Int32 BOX_PUBLIC_KEY_BYTES = 32;
-        public static Int32 BOX_SECRET_KEY_BYTES = 32;
-        public static Int32 BOX_SHARED_KEY_BYTES = 32;
-        public static Int32 BOX_NONCE_BYTES = 24;
-        public static Int32 BOX_OVERHEAD_BYTES = 16;
-        public static Int32 SIGNATURE_SIZE_BYTES = 64;
-        public static Int32 SIGN_PUBLIC_KEY_BYTES = 32;
-        public static Int32 SIGN_SECRET_KEY_BYTES = 64;
-        public static Int32 SIGN_KEYPAIR_SEED_BYTES = 32;
-        public static Int32 SECRETBOX_KEY_BYTES = 32;
-        public static Int32 SECRETBOX_NONCE_BYTES = 24;
-        public static Int32 SECRETBOX_OVERHEAD_BYTES = 16;
-        public static Int32 HASH_SIZE_BYTES = 64;
-
+        public static Int32 BOX_BEFORENMBYTES = 32;
+        public static Int32 BOX_PUBLICKEYBYTES = 32;
+        public static Int32 BOX_SECRETKEYBYTES = 32;
+        public static Int32 BOX_NONCEBYTES = 24;
+        public static Int32 BOX_ZEROBYTES = 32;
+        public static Int32 BOX_BOXZEROBYTES = 16;
+        
+        public static Int32 SIGN_PUBLICKEYBYTES = 32;
+        public static Int32 SIGN_SECRETKEYBYTES = 64;
+        
         public class InvalidSignatureException : CryptographicException { }
         public class InvalidCipherTextException : CryptographicException { }
 
@@ -406,8 +399,6 @@ namespace Nacl
             }
 
             CryptoStreamXor(c, m, d, n, k);
-
-            // FIXME: i had serious problem here!!!!!!!!!!!!!
             CryptoOnetimeAuth(c, 16, c, 32, d - 32, c);
 
             for (var i = 0; i < 16; ++i)
