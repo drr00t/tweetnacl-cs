@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TweeNaCl", "TweeNaCl.csproj", "{C68B2932-C122-4ED6-80B3-80E1D4AA02DA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TweetNaCl", "TweetNaCl\TweetNaCl.csproj", "{C68B2932-C122-4ED6-80B3-80E1D4AA02DA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TweetNaCl.Tests", "..\TweetNaCl.Tests\TweetNaCl.Tests.csproj", "{93DCE450-56A2-40A8-A156-0F76A2A04E67}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TweetNaCl.Tests", "TweetNaCl.Tests\TweetNaCl.Tests.csproj", "{93DCE450-56A2-40A8-A156-0F76A2A04E67}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -53,7 +53,7 @@
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\TweetNaCl\TweeNaCl.csproj">
+    <ProjectReference Include="..\TweetNaCl\TweetNaCl.csproj">
       <Project>{c68b2932-c122-4ed6-80b3-80e1d4aa02da}</Project>
       <Name>TweeNaCl</Name>
     </ProjectReference>

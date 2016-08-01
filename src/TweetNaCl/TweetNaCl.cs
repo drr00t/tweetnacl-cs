@@ -99,14 +99,15 @@ namespace Nacl
             return Vn(x, y, 32);
         }
 
-        private static void Core(Byte[] pout, Byte[] pin, Byte[] k, Byte[] c)
+        private static void Core(Byte[] pout, Byte[] pin, Byte[] k, Byte[] c, Boolean hsalsa)
         {
             UInt32[] w = new UInt32[16];
             UInt32[] x = new UInt32[16];
             UInt32[] y = new UInt32[16];
             UInt32[] t = new UInt32[4];
+            Int32 i, j, m;
 
-            for (var i = 0; i < 4; i++)
+            for (i = 0; i < 4; i++)
             {
                 x[5 * i] = Ld32(c, 4 * i);
                 x[1 + i] = Ld32(k, 4 * i);
@@ -114,16 +115,16 @@ namespace Nacl
                 x[11 + i] = Ld32(k, 16 + 4 * i);
             }
 
-            for (var i = 0; i < 16; ++i)
+            for (i = 0; i < 16; ++i)
             {
                 y[i] = x[i];
             }
 
-            for (var i = 0; i < 20; ++i)
+            for (i = 0; i < 20; ++i)
             {
-                for (var j = 0; j < 4; ++j)
+                for (j = 0; j < 4; ++j)
                 {
-                    for (var m = 0; m < 4; ++m)
+                    for (m = 0; m < 4; ++m)
                     {
                         t[m] = x[(5 * j + 4 * m) % 16];
                     }
@@ -133,58 +134,55 @@ namespace Nacl
                     t[3] ^= L32(t[2] + t[1], 13);
                     t[0] ^= L32(t[3] + t[2], 18);
 
-                    for (var m = 0; m < 4; ++m)
+                    for (m = 0; m < 4; ++m)
                     {
                         w[4 * j + (j + m) % 4] = t[m];
                     }
                 }
 
-                for (var m = 0; m < 16; ++m)
+                for (m = 0; m < 16; ++m)
                 {
                     x[m] = w[m];
+                }
+            }
+
+            if(hsalsa)
+            {
+                for (i = 0; i < 16; ++i)
+                {
+                    x[i] += y[i];
+                }
+
+                for (i = 0; i < 4; ++i)
+                {
+                    x[5 * i] -= Ld32(c, 4 * i);
+                    x[6 + i] -= Ld32(pin, 4 * i);
+                }
+
+                for (i = 0; i < 4; ++i)
+                {
+                    St32(pout, x[5 * i], 4 * i);
+                    St32(pout, x[6 + i], 16 + 4 * i);
+                }
+            }
+            else
+            {
+                for (i = 0; i < 16; ++i)
+                {
+                    St32(pout, x[i] + y[i], 4 * i);
                 }
             }
         }
 
         public static Int32 CryptoCoreSalsa20(Byte[] pout, Byte[] pin, Byte[] k, Byte[] c)
         {
-            UInt32[] x = new UInt32[16];
-            UInt32[] y = new UInt32[16];
-
-            Core(pout, pin, k, c);
-
-            for (var i = 0; i < 16; ++i)
-            {
-                St32(pout, x[i] + y[i], 4 * i);
-            }
-
+            Core(pout, pin, k, c, false);
             return 0;
         }
 
         public static Int32 CryptoCoreHSalsa20(Byte[] pout, Byte[] pin, Byte[] k, Byte[] c)
         {
-            UInt32[] x = new UInt32[16];
-            UInt32[] y = new UInt32[16];
-
-            Core(pout, pin, k, c);
-
-            for (var i = 0; i < 16; ++i)
-            {
-                x[i] += y[i];
-            }
-
-            for (var i = 0; i < 4; ++i)
-            {
-                x[5 * i] -= Ld32(c, 4 * i);
-                x[6 + i] -= Ld32(pin, 4 * i);
-            }
-
-            for (var i = 0; i < 4; ++i)
-            {
-                St32(pout, x[5 * i], 4 * i);
-                St32(pout, x[6 + i], 16 + 4 * i);
-            }
-
+            Core(pout, pin, k, c, true);
             return 0;
         }
 
@@ -192,6 +190,7 @@ namespace Nacl
 
         private static Int32 CryptoStreamSalsa20Xor(Byte[] c, Byte[] m, Int64 b, Byte[] n, Int32 nOffset, Byte[] k)
         {
+            Int32 i = 0;
             Byte[] z = new Byte[16];
             Byte[] x = new Byte[64];
 
@@ -202,12 +201,12 @@ namespace Nacl
                 return 0;
             }
 
-            for (var i = 0; i < 16; ++i)
+            for (i = 0; i < 16; ++i)
             {
                 z[i] = 0;
             }
 
-            for (var i = 0; i < 8; ++i)
+            for (i = 0; i < 8; ++i)
             {
                 z[i] = n[nOffset + i];
             }
@@ -218,13 +217,13 @@ namespace Nacl
             while (b >= 64)
             {
                 CryptoCoreSalsa20(x, z, k, Sigma);
-                for (var i = 0; i < 64; ++i)
+                for (i = 0; i < 64; ++i)
                 {
                     c[cOffset + i] = (Byte)((m != null ? m[mOffset + i] : 0) ^ x[i]);
                 }
 
                 u = 1;
-                for (var i = 8; i < 16; ++i)
+                for (i = 8; i < 16; ++i)
                 {
                     u += (UInt32)0xff & z[i];
                     z[i] = (Byte)u;
@@ -243,7 +242,7 @@ namespace Nacl
             {
                 CryptoCoreSalsa20(x, z, k, Sigma);
 
-                for (var i = 0; i < b; i++)
+                for (i = 0; i < b; i++)
                 {
                     c[cOffset + i] = (Byte)((m != null ? m[mOffset + i] : 0) ^ x[i]);
                 }
@@ -277,8 +276,8 @@ namespace Nacl
 
         private static void Add1305(Int32[] h, Int32[] c)
         {
-            Int32 u = 0;
-            for (var j = 0; j < 17; ++j)
+            Int32 u = 0, j = 0;
+            for (j = 0; j < 17; ++j)
             {
                 u += h[j] + c[j];
                 h[j] = u & 255;
@@ -329,11 +328,15 @@ namespace Nacl
                     x[i] = 0;
 
                     for (j = 0; j < 17; ++j)
+                    {
                         x[i] += h[j] * ((j <= i) ? r[i - j] : 320 * r[i + 17 - j]);
+                    }                        
                 }
 
                 for (i = 0; i < 17; ++i)
+                {
                     h[i] = x[i];
+                }                    
 
                 u = 0;
                 for (j = 0; j < 16; ++j)
@@ -342,7 +345,9 @@ namespace Nacl
                     h[j] = u & 255;
                     u >>= 8;
                 }
-                u += h[16]; h[16] = u & 3;
+
+                u += h[16]; 
+                h[16] = u & 3;
                 u = 5 * (u >> 2);
 
                 for (j = 0; j < 16; ++j)
@@ -351,7 +356,9 @@ namespace Nacl
                     h[j] = u & 255;
                     u >>= 8;
                 }
-                u += h[16]; h[16] = u;
+                
+                u += h[16]; 
+                h[16] = u;
             }
 
             for (j = 0; j < 17; ++j)
@@ -469,10 +476,10 @@ namespace Nacl
 
         private static void Pack25519(Byte[] o, Int64[] /*gf*/ n, Int32 nOffset)
         {
-            Int32 b = 0;
+            Int32 b = 0, i, j;
             Int64[] /*gf*/ m = new Int64[GF_LEN], t = new Int64[GF_LEN];
 
-            for (var i = 0; i < 16; ++i)
+            for (i = 0; i < 16; ++i)
             {
                 t[i] = n[nOffset + i];
             }
@@ -481,11 +488,11 @@ namespace Nacl
             Car25519(t, 0);
             Car25519(t, 0);
 
-            for (var j = 0; j < 2; ++j)
+            for (j = 0; j < 2; ++j)
             {
                 m[0] = t[0] - 0xffed;
 
-                for (var i = 1; i < 15; i++)
+                for (i = 1; i < 15; i++)
                 {
                     m[i] = t[i] - 0xffff - ((m[i - 1] >> 16) & 1);
                     m[i - 1] &= 0xffff;
@@ -497,7 +504,7 @@ namespace Nacl
                 Sel25519(t, m, 1 - b);
             }
 
-            for (var i = 0; i < 16; ++i)
+            for (i = 0; i < 16; ++i)
             {
                 o[2 * i] = (Byte)t[i];
                 o[2 * i + 1] = (Byte)(t[i] >> 8);
