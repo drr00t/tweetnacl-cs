@@ -1,8 +1,8 @@
-﻿// Ported in 2016 by Adriano Ribeiro.
-// Public domain.
-//
-// Implementation derived from TweetNaCl version 20140427.
-// See for details: http://tweetnacl.cr.yp.to/
+﻿/*
+ *This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 
 using System;
 using System.Collections.Generic;
@@ -19,10 +19,17 @@ namespace Nacl
         public static Int32 BOX_NONCEBYTES = 24;
         public static Int32 BOX_ZEROBYTES = 32;
         public static Int32 BOX_BOXZEROBYTES = 16;
-        
+
+        /// <summary>
+        /// SHA-512 hash bytes
+        /// </summary>
+        public static Int32 HASH_BYTES = 64;
+
+
         public static Int32 SIGN_PUBLICKEYBYTES = 32;
         public static Int32 SIGN_SECRETKEYBYTES = 64;
-        
+        public static Int32 SIGN_BYTES = 64;
+
         public class InvalidSignatureException : CryptographicException { }
         public class InvalidCipherTextException : CryptographicException { }
 
@@ -290,7 +297,7 @@ namespace Nacl
                 r[j] = 0;
                 h[j] = 0;
             }
-            
+
             for (j = 0; j < 16; ++j)
             {
                 r[j] = 0xff & k[j];
@@ -323,13 +330,13 @@ namespace Nacl
                     for (j = 0; j < 17; ++j)
                     {
                         x[i] += h[j] * ((j <= i) ? r[i - j] : 320 * r[i + 17 - j]);
-                    }                        
+                    }
                 }
 
                 for (i = 0; i < 17; ++i)
                 {
                     h[i] = x[i];
-                }                    
+                }
 
                 u = 0;
                 for (j = 0; j < 16; ++j)
@@ -339,7 +346,7 @@ namespace Nacl
                     u >>= 8;
                 }
 
-                u += h[16]; 
+                u += h[16];
                 h[16] = u & 3;
                 u = 5 * (u >> 2);
 
@@ -349,8 +356,8 @@ namespace Nacl
                     h[j] = u & 255;
                     u >>= 8;
                 }
-                
-                u += h[16]; 
+
+                u += h[16];
                 h[16] = u;
             }
 
@@ -773,7 +780,7 @@ namespace Nacl
       0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
     };
 
-        private static Int32 CryptoHashBlocks(Byte[] x, Byte[] m, UInt64 n)
+        private static Int32 CryptoHashBlocks(Byte[] x, Byte[] m, Int32 n)
         {
             UInt64[] z = new UInt64[8];
             UInt64[] b = new UInt64[8];
@@ -833,7 +840,7 @@ namespace Nacl
                 Ts64(x, z[i], 8 * i);
             }
 
-            return (Int32)n;
+            return n;
         }
 
         private static Byte[] iv = new Byte[64]{
@@ -847,11 +854,18 @@ namespace Nacl
           0x5b,0xe0,0xcd,0x19,0x13,0x7e,0x21,0x79
     };
 
-        private static Int32 CryptoHash(Byte[] pout, Byte[] m, UInt64 n)
+        /// <summary>
+        /// crypto_hash is currently an implementation of SHA-512.
+        /// </summary>
+        /// <param name="pout"></param>
+        /// <param name="m"></param>
+        /// <param name="n"></param>
+        /// <returns></returns>
+        public static Int32 CryptoHash(Byte[] pout, Byte[] m, Int32 n)
         {
             Byte[] h = new Byte[64];
             Byte[] x = new Byte[256];
-            UInt64 b = n;
+            Int32 b = n;
 
             for (var i = 0; i < 64; i++)
             {
@@ -880,17 +894,17 @@ namespace Nacl
                 x[i] = 0;
             }
 
-            for (UInt64 i = 0; i < n; i++)
+            for (var i = 0; i < n; i++)
             {
                 x[i] = m[i];
             }
 
             x[n] = 128;
 
-            n = (UInt64)((n < 112) ? 256 - 128 * 1 : 256 - 128 * 0);
+            n = ((n < 112) ? 256 - 128 * 1 : 256 - 128 * 0);
             x[n - 9] = (Byte)(b >> 61);
 
-            Ts64(x, b << 3, (Int32)n - 8);
+            Ts64(x, (UInt64)b << 3, n - 8);
 
             CryptoHashBlocks(h, x, n);
 
@@ -974,7 +988,7 @@ namespace Nacl
 
         private static void Scalarbase(Int64[][] /*gf*/ p/*[4]*/, Byte[] s, Int32 sOffset)
         {
-            Int64[][] /*gf*/ q = new Int64[4][] { new Int64[16], new Int64[16], new Int64[16], new Int64[16] };
+            Int64[][] /*gf*/ q = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
             Set25519(q[0], X);
             Set25519(q[1], Y);
             Set25519(q[2], GF1);
@@ -1039,14 +1053,11 @@ namespace Nacl
 
             ModL(r, 0, x);
         }
-
-        private static Int32 CryptoSign(Byte[] sm, Byte[] m, UInt64 n, Byte[] sk)
+                
+        public static void CryptoSignKeypair(Byte[] pk, Byte[] sk)
         {
             Byte[] d = new Byte[64];
-            Byte[] h = new Byte[64];
-            Byte[] r = new Byte[64];
-            Int64[] x = new Int64[64];
-            Int64[][] /*gf*/ p/*[4]*/ = new Int64[4][] { new Int64[16], new Int64[16], new Int64[16], new Int64[16] };
+            Int64[][] /*gf*/ p = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
 
             CryptoHash(d, sk, 32);
 
@@ -1054,8 +1065,30 @@ namespace Nacl
             d[31] &= 127;
             d[31] |= 64;
 
-            //        smlen[0] = n+64;
-            for (UInt64 i = 0; i < n; ++i)
+            Scalarbase(p,d, 0);
+            Pack(pk,p);
+
+            for (var i = 0; i < 32; ++i)
+            {
+                sk[32 + i] = pk[i];
+            }
+        }
+
+        public static Int32 CryptoSign(Byte[] sm, Byte[] m, Int32 n, Byte[] sk)
+        {
+            Byte[] d = new Byte[64];
+            Byte[] h = new Byte[64];
+            Byte[] r = new Byte[64];
+            Int64[] x = new Int64[64];
+            Int64[][] /*gf*/ p/*[4]*/ = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
+
+            CryptoHash(d, sk, 32);
+
+            d[0] &= 248;
+            d[31] &= 127;
+            d[31] |= 64;
+
+            for (var i = 0; i < n; ++i)
             {
                 sm[64 + i] = m[i];
             }
@@ -1157,12 +1190,12 @@ namespace Nacl
             return 0;
         }
 
-        private static Int32 CryptoSignOpen(Byte[] m, Byte[] sm, UInt64 n, Byte[] pk)
+        public static Int32 CryptoSignOpen(Byte[] m, Byte[] sm, Int32 n, Byte[] pk)
         {
             Byte[] t = new Byte[32];
             Byte[] h = new Byte[64];
-            Int64[][] /*gf*/ p = new Int64[4][] { new Int64[16], new Int64[16], new Int64[16], new Int64[16] };
-            Int64[][] /*gf*/ q = new Int64[4][] { new Int64[16], new Int64[16], new Int64[16], new Int64[16] };
+            Int64[][] /*gf*/ p = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
+            Int64[][] /*gf*/ q = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
 
             //        mlen[0] = -1;
             if (n < 64)
@@ -1175,7 +1208,7 @@ namespace Nacl
                 return -1;
             }
 
-            for (UInt64 i = 0; i < n; ++i)
+            for (var i = 0; i < n; ++i)
             {
                 m[i] = sm[i];
             }
@@ -1196,7 +1229,7 @@ namespace Nacl
             n -= 64;
             if (CryptoVerify32(sm, t) != 0)
             {
-                for (UInt64 i = 0; i < n; ++i)
+                for (var i = 0; i < n; ++i)
                 {
                     m[i] = 0;
                 }
@@ -1204,7 +1237,7 @@ namespace Nacl
                 return -1;
             }
 
-            for (UInt64 i = 0; i < n; ++i)
+            for (var i = 0; i < n; ++i)
             {
                 m[64 + i] = sm[i + 64];
             }

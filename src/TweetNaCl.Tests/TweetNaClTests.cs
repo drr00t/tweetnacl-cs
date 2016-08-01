@@ -1,4 +1,32 @@
-﻿using Nacl;
+﻿//This is free and unencumbered software released into the public domain.
+
+//Anyone is free to copy, modify, publish, use, compile, sell, or
+//distribute this software, either in source code form or as a compiled
+//binary, for any purpose, commercial or non-commercial, and by any
+//means.
+
+//In jurisdictions that recognize copyright laws, the author or authors
+//of this software dedicate any and all copyright interest in the
+//software to the public domain. We make this dedication for the benefit
+//of the public at large and to the detriment of our heirs and
+//successors. We intend this dedication to be an overt act of
+//relinquishment in perpetuity of all present and future rights to this
+//software under copyright law.
+
+//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+//EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+//MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+//IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+//OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+//ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+//OTHER DEALINGS IN THE SOFTWARE.
+
+//For more information, please refer to <http://unlicense.org/>
+
+
+
+
+using Nacl;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -197,6 +225,41 @@ namespace NaCl.Tests
 
             TweetNaCl.CryptoBoxOpen(decMessage, encMessage, encMessage.Count(), nonce, apk, bsk);
             Assert.AreNotEqual(result, -1, "decryption failed.");
+        }
+
+        [Test]
+        public void TestForMessageHashing()
+        {
+            String message = "test";
+            Byte[] bMessage = Encoding.UTF8.GetBytes(message);
+            Byte[] hsh1 = new Byte[TweetNaCl.HASH_BYTES];
+            Byte[] hsh2 = new Byte[TweetNaCl.HASH_BYTES];
+
+            var result = -10;
+
+            TweetNaCl.CryptoHash(hsh1, bMessage, bMessage.Length);
+            Assert.AreNotEqual(result, -1, "First hashing call for message generation failed.");
+
+            TweetNaCl.CryptoHash(hsh2, bMessage, bMessage.Length);
+            Assert.AreNotEqual(result, -1, "Second hashing call for message generation failed.");
+
+
+            Assert.AreEqual(hsh1, hsh2, "hash for message are not equal.");
+        }
+
+        [Test]
+        public void TestForMessageSignKeypair()
+        {
+            String message = "test";
+            Byte[] bMessage = Encoding.UTF8.GetBytes(message);
+            Byte[] spk = new Byte[TweetNaCl.SIGN_PUBLICKEYBYTES];
+            Byte[] ssk = new Byte[TweetNaCl.SIGN_SECRETKEYBYTES];
+            Byte[] sMessage = new Byte[TweetNaCl.SIGN_BYTES + bMessage.Length];
+                        
+            TweetNaCl.CryptoSignKeypair(spk,ssk);
+
+            //var result = TweetNaCl.CryptoSign(sMessage, bMessage, bMessage.Length, ssk);
+            //Assert.AreNotEqual(result, -1, "Messaign failed.");
         }
     }
 }
