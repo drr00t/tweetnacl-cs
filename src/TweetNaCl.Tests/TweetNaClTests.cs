@@ -281,7 +281,7 @@ namespace NaCl.Tests
             Byte[] spk = new Byte[TweetNaCl.SIGN_PUBLICKEYBYTES];
             Byte[] ssk = new Byte[TweetNaCl.SIGN_SECRETKEYBYTES];
             Byte[] sMessage = new Byte[TweetNaCl.SIGN_BYTES + bMessage.Length];
-            Byte[] cMessage = new Byte[sMessage.Length];
+            Byte[] cMessage = new Byte[bMessage.Length];
 
             var result = TweetNaCl.CryptoSignKeypair(spk, ssk);
             Assert.AreNotEqual(result, -1, "Message sign keyparis generation failed.");
@@ -291,6 +291,8 @@ namespace NaCl.Tests
 
             result = TweetNaCl.CryptoSignOpen(cMessage, sMessage, sMessage.Length, spk);
             Assert.AreNotEqual(result, -1, "Message sign verification failed.");
+
+            Assert.AreEqual(Encoding.UTF8.GetString(cMessage), message, "Messages verification failed.");
         }
     }
 }

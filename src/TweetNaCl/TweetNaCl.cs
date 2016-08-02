@@ -1205,6 +1205,8 @@ namespace Nacl
             Int64[][] /*gf*/ p = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
             Int64[][] /*gf*/ q = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
 
+            Byte[] tsm = new Byte[sm.Length];
+
             if (n < 64)
             {
                 return -1;
@@ -1217,15 +1219,15 @@ namespace Nacl
 
             for (var i = 0; i < n; ++i)
             {
-                m[i] = sm[i];
+                tsm[i] = sm[i];
             }
 
             for (var i = 0; i < 32; ++i)
             {
-                m[i + 32] = pk[i];
+                tsm[i + 32] = pk[i];
             }
 
-            CryptoHash(h, m, n);
+            CryptoHash(h, tsm, n);
             Reduce(h);
             Scalarmult(p, q, h, 0);
 
@@ -1238,7 +1240,7 @@ namespace Nacl
             {
                 for (var i = 0; i < n; ++i)
                 {
-                    m[i] = 0;
+                    tsm[i] = 0;
                 }
 
                 return -1;
@@ -1246,12 +1248,12 @@ namespace Nacl
 
             for (var i = 0; i < sm.Length; ++i)
             {
-                m[i] = 0;
+                tsm[i] = 0;
             }
 
             for (var i = 0; i < n; ++i)
             {
-                m[64 + i] = sm[i + 64];
+                m[i] = sm[i + 64];
             }
             //        mlen[0] = n;
             return 0;
