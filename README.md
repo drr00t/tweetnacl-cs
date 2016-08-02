@@ -14,5 +14,5 @@ A C# port of TweetNaCl from the original C version 20140427.
     - CryptoBoxAfternm
     - CryptoBoxOpenAfternm
 
-- Implement more tests using another impementations, ex: original TweetNaCl, TweeNaCl.js,
+- Implement more tests using another implementation, ex: original tweetnacl, TweeNaCl.js,
 - It still needs a professional cryptographic audit.
