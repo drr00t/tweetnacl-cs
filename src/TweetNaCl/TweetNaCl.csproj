@@ -7,7 +7,7 @@
     <ProjectGuid>{C68B2932-C122-4ED6-80B3-80E1D4AA02DA}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>TweeNaCl</RootNamespace>
+    <RootNamespace>NaCl</RootNamespace>
     <AssemblyName>TweeNaCl</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>

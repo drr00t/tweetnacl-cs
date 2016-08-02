@@ -250,16 +250,47 @@ namespace NaCl.Tests
         [Test]
         public void TestForMessageSignKeypair()
         {
+            Byte[] spk = new Byte[TweetNaCl.SIGN_PUBLICKEYBYTES];
+            Byte[] ssk = new Byte[TweetNaCl.SIGN_SECRETKEYBYTES];
+                        
+            var result = TweetNaCl.CryptoSignKeypair(spk,ssk);
+            Assert.AreNotEqual(result, -1, "Message sign keyparis generation failed.");
+        }
+
+        [Test]
+        public void TestForMessageSign()
+        {
             String message = "test";
             Byte[] bMessage = Encoding.UTF8.GetBytes(message);
             Byte[] spk = new Byte[TweetNaCl.SIGN_PUBLICKEYBYTES];
             Byte[] ssk = new Byte[TweetNaCl.SIGN_SECRETKEYBYTES];
             Byte[] sMessage = new Byte[TweetNaCl.SIGN_BYTES + bMessage.Length];
-                        
-            TweetNaCl.CryptoSignKeypair(spk,ssk);
 
-            //var result = TweetNaCl.CryptoSign(sMessage, bMessage, bMessage.Length, ssk);
-            //Assert.AreNotEqual(result, -1, "Messaign failed.");
+            var result = TweetNaCl.CryptoSignKeypair(spk, ssk);
+            Assert.AreNotEqual(result, -1, "Message sign keyparis generation failed.");
+
+            result = TweetNaCl.CryptoSign(sMessage, bMessage, bMessage.Length, ssk);
+            Assert.AreNotEqual(result, -1, "Message sign failed.");
+        }
+
+        [Test]
+        public void TestForMessageSignOpen()
+        {
+            String message = "test";
+            Byte[] bMessage = Encoding.UTF8.GetBytes(message);
+            Byte[] spk = new Byte[TweetNaCl.SIGN_PUBLICKEYBYTES];
+            Byte[] ssk = new Byte[TweetNaCl.SIGN_SECRETKEYBYTES];
+            Byte[] sMessage = new Byte[TweetNaCl.SIGN_BYTES + bMessage.Length];
+            Byte[] cMessage = new Byte[sMessage.Length];
+
+            var result = TweetNaCl.CryptoSignKeypair(spk, ssk);
+            Assert.AreNotEqual(result, -1, "Message sign keyparis generation failed.");
+
+            result = TweetNaCl.CryptoSign(sMessage, bMessage, bMessage.Length, ssk);
+            Assert.AreNotEqual(result, -1, "Message sign failed.");
+
+            result = TweetNaCl.CryptoSignOpen(cMessage, sMessage, sMessage.Length, spk);
+            Assert.AreNotEqual(result, -1, "Message sign verification failed.");
         }
     }
 }

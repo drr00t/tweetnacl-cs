@@ -2,6 +2,7 @@
  *This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
  */
 
 using System;
@@ -1053,13 +1054,18 @@ namespace Nacl
 
             ModL(r, 0, x);
         }
-                
-        public static void CryptoSignKeypair(Byte[] pk, Byte[] sk)
+
+        public static Int32 CryptoSignKeypair(Byte[] pk, Byte[] sk)
         {
             Byte[] d = new Byte[64];
             Int64[][] /*gf*/ p = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
 
-            CryptoHash(d, sk, 32);
+            RandomBytes(sk);
+
+            if(CryptoHash(d, sk, 32) != 0)
+            {
+                return -1;
+            }
 
             d[0] &= 248;
             d[31] &= 127;
@@ -1072,6 +1078,8 @@ namespace Nacl
             {
                 sk[32 + i] = pk[i];
             }
+
+            return 0;
         }
 
         public static Int32 CryptoSign(Byte[] sm, Byte[] m, Int32 n, Byte[] sk)
@@ -1098,9 +1106,9 @@ namespace Nacl
                 sm[32 + i] = d[32 + i];
             }
 
-            Byte[] smd = new Byte[32];
-            Array.Copy(sm, 32, smd, 0, sm.Length);
-            CryptoHash(r, smd, n + 32);
+            Byte[] smd = new Byte[sm.Length];
+            Array.Copy(sm, 32, smd, 0, sm.Length-32);
+            CryptoHash(r, smd, n + 64);
 
             Reduce(r);
             Scalarbase(p, r, 0);
@@ -1197,7 +1205,6 @@ namespace Nacl
             Int64[][] /*gf*/ p = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
             Int64[][] /*gf*/ q = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
 
-            //        mlen[0] = -1;
             if (n < 64)
             {
                 return -1;
@@ -1235,6 +1242,11 @@ namespace Nacl
                 }
 
                 return -1;
+            }
+
+            for (var i = 0; i < sm.Length; ++i)
+            {
+                m[i] = 0;
             }
 
             for (var i = 0; i < n; ++i)
