@@ -66,6 +66,9 @@ namespace NaCl.Tests
             Byte[] sk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
 
             var result = TweetNaCl.CryptoBoxKeypair(pk,sk);
+
+            String pk64 = Convert.ToBase64String(pk);
+            String sk64 = Convert.ToBase64String(sk);
             Assert.AreNotEqual(result, -1, "key generation failed.");
         }
 
@@ -193,6 +196,45 @@ namespace NaCl.Tests
         {
             Byte[] apk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
             Byte[] ask = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
+
+            Byte[] bpk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
+            Byte[] bsk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
+
+            String message = "test";
+            Byte[] bMessage = Encoding.UTF8.GetBytes(message);
+            Byte[] pk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
+            Byte[] sk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
+            Byte[] paddedMessage = new Byte[TweetNaCl.BOX_ZEROBYTES + bMessage.Length];
+            Byte[] encMessage = new Byte[paddedMessage.Length];
+            Byte[] decMessage = new Byte[encMessage.Length];
+            Byte[] nonce = new Byte[TweetNaCl.BOX_NONCEBYTES];
+            Byte[] k = new Byte[TweetNaCl.BOX_BEFORENMBYTES];
+
+            var result = -10;
+
+            Array.Copy(bMessage, 0, paddedMessage, TweetNaCl.BOX_ZEROBYTES, bMessage.Length);
+
+            TweetNaCl.CryptoBoxKeypair(apk, ask);
+            Assert.AreNotEqual(result, -1, "key pair A generation failed.");
+
+            TweetNaCl.CryptoBoxKeypair(bpk, bsk);
+            Assert.AreNotEqual(result, -1, "key pair B generation failed.");
+
+            TweetNaCl.RandomBytes(nonce);
+            Assert.AreNotEqual(result, -1, "randombytes generation failed.");
+
+            TweetNaCl.CryptoBox(encMessage, paddedMessage, paddedMessage.Count(), nonce, bpk, ask);
+            Assert.AreNotEqual(result, -1, "encryption failed.");
+
+            TweetNaCl.CryptoBoxOpen(decMessage, encMessage, encMessage.Count(), nonce, apk, bsk);
+            Assert.AreNotEqual(result, -1, "decryption failed.");
+        }
+
+        [Test]
+        public void TestForMessageDecryptionTweetNaCljsKeyPair()
+        {
+            Byte[] apk = Convert.FromBase64String("GK4GzNY+fbkRPd5fwYUaca70iENh2A1QRss1KBtpWU4=");
+            Byte[] ask = Convert.FromBase64String("HQT4qtjv/3Q0nGYX4DB776e6QeUE40wr71MxNSg0+bc=");
 
             Byte[] bpk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
             Byte[] bsk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
