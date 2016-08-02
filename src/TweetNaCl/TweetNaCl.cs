@@ -33,6 +33,7 @@ namespace Nacl
 
         public class InvalidSignatureException : CryptographicException { }
         public class InvalidCipherTextException : CryptographicException { }
+        public class InvalidEncryptionKeypair : CryptographicException { }
 
         private static Byte[] _0 = new Byte[16];
         private static Byte[] _9 = new Byte[32] { 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };

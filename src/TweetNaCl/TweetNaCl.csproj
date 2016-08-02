@@ -39,9 +39,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Asymmetric\Encryption\IAsymmetricDecryption.cs" />
+    <Compile Include="Asymmetric\Sign\IAsymmetricSign.cs" />
+    <Compile Include="Asymmetric\Sign\IAsymmetricSignOpen.cs" />
+    <Compile Include="Symmetric\Encryption\ISymmetricEncryption.cs" />
+    <Compile Include="Asymmetric\BaseKeyPair.cs" />
+    <Compile Include="Core\KeyPair.cs" />
+    <Compile Include="Asymmetric\Encryption\EncryptionKeyPair.cs" />
+    <Compile Include="Asymmetric\Encryption\IAsymmetricEncryption.cs" />
+    <Compile Include="Asymmetric\Sign\SignKeyPair.cs" />
+    <Compile Include="Symmetric\Authentication\ISymmetricAuth.cs" />
+    <Compile Include="Symmetric\Authentication\ISymmetricVerification.cs" />
     <Compile Include="TweetNaCl.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -292,7 +292,7 @@ namespace NaCl.Tests
             result = TweetNaCl.CryptoSignOpen(cMessage, sMessage, sMessage.Length, spk);
             Assert.AreNotEqual(result, -1, "Message sign verification failed.");
 
-            Assert.AreEqual(Encoding.UTF8.GetString(cMessage), message, "Messages verification failed.");
+            Assert.AreEqual(Encoding.UTF8.GetString(cMessage), message, "Messages sign verification failed.");
         }
     }
 }
