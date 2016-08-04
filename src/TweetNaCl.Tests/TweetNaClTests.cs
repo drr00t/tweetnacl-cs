@@ -241,8 +241,6 @@ namespace NaCl.Tests
 
             String message = "test";
             Byte[] bMessage = Encoding.UTF8.GetBytes(message);
-            Byte[] pk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
-            Byte[] sk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
             Byte[] paddedMessage = new Byte[TweetNaCl.BOX_ZEROBYTES + bMessage.Length];
             Byte[] encMessage = new Byte[paddedMessage.Length];
             Byte[] decMessage = new Byte[encMessage.Length];
@@ -266,6 +264,31 @@ namespace NaCl.Tests
             Assert.AreNotEqual(result, -1, "encryption failed.");
 
             TweetNaCl.CryptoBoxOpen(decMessage, encMessage, nounce, apk, bsk);
+            Assert.AreNotEqual(result, -1, "decryption failed.");
+        }
+
+        [Test]
+        public void TestForMessageDecryptionSecretBox()
+        {
+            Byte[] bsk = new Byte[TweetNaCl.SECRETBOX_NONCEBYTES];
+
+            String message = "test";
+            Byte[] bMessage = Encoding.UTF8.GetBytes(message);
+            Byte[] sk = new Byte[TweetNaCl.SECRETBOX_KEYBYTES];
+            Byte[] paddedMessage = new Byte[TweetNaCl.BOX_ZEROBYTES + bMessage.Length];
+            Byte[] encMessage = new Byte[paddedMessage.Length];
+            Byte[] decMessage = new Byte[encMessage.Length];
+            Byte[] nounce = new Byte[TweetNaCl.BOX_NONCEBYTES];
+
+            Array.Copy(bMessage, 0, paddedMessage, TweetNaCl.BOX_ZEROBYTES, bMessage.Length);
+
+            TweetNaCl.RandomBytes(sk);
+            TweetNaCl.RandomBytes(nounce);
+
+            var result = TweetNaCl.CryptoSecretBox(encMessage, paddedMessage, nounce, sk);
+            Assert.AreNotEqual(result, -1, "encryption failed.");
+
+            result = TweetNaCl.CryptoSecretBoxOpen(decMessage, encMessage, nounce, sk);
             Assert.AreNotEqual(result, -1, "decryption failed.");
         }
 

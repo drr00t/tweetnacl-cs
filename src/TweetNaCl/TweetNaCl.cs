@@ -21,6 +21,9 @@ namespace Nacl
         public static Int32 BOX_ZEROBYTES = 32;
         public static Int32 BOX_BOXZEROBYTES = 16;
 
+        public static Int32 SECRETBOX_NONCEBYTES = 24;
+        public static Int32 SECRETBOX_KEYBYTES = 32;
+
         /// <summary>
         /// SHA-512 hash bytes
         /// </summary>
@@ -600,7 +603,7 @@ namespace Nacl
         /// <returns></returns>
         public static Int32 CryptoBoxAfternm(Byte[] cipheredMessage, Byte[] paddedMessage, Byte[] nounce, Byte[] k)
         {
-            return CryptoSecretBox(cipheredMessage, paddedMessage, paddedMessage.Length, nounce, k);
+            return CryptoSecretBox(cipheredMessage, paddedMessage, nounce, k);
         }
 
         /// <summary>
@@ -614,7 +617,7 @@ namespace Nacl
         /// <returns></returns>
         public static Int32 CryptoBoxOpenAfternm(Byte[] paddedMessage, Byte[] cipheredMessage, Byte[] nounce, Byte[] k)
         {
-            return CryptoSecretBoxOpen(paddedMessage, cipheredMessage, cipheredMessage.Length, nounce, k);
+            return CryptoSecretBoxOpen(paddedMessage, cipheredMessage, nounce, k);
         }
 
         /// <summary>
@@ -886,7 +889,6 @@ namespace Nacl
             return 0;
         }
 
-
         public static Int32 CryptoOnetimeAuth(Byte[] pout, Int32 poutOffset, Byte[] m, Int64 mOffset, Int64 n, Byte[] k)
         {
             Int32 i = 0, j = 0, u = 0, s = 0;
@@ -998,45 +1000,71 @@ namespace Nacl
             return CryptoVerify16(h, x, hoffset);
         }
 
-        public static Int32 CryptoSecretBox(Byte[] c, Byte[] m, Int64 d, Byte[] n, Byte[] k)
+        /// <summary>
+        /// The crypto_secretbox function encrypts and authenticates a message
+        /// </summary>
+        /// <param name="cipheredMessage"></param>
+        /// <param name="paddedMessage"></param>
+        /// <param name="nounce"></param>
+        /// <param name="k"></param>
+        /// <returns></returns>
+        public static Int32 CryptoSecretBox(Byte[] cipheredMessage, Byte[] paddedMessage, Byte[] nounce, Byte[] k)
         {
-            if (d < 32)
+            if (paddedMessage.Length < 32)
             {
                 return -1;
             }
 
-            CryptoStreamXor(c, m, d, n, k);
-            CryptoOnetimeAuth(c, 16, c, 32, d - 32, c);
+            if (CryptoStreamXor(cipheredMessage, paddedMessage, paddedMessage.Length, nounce, k) != 0)
+            {
+                return -1;
+            }
+
+            if(CryptoOnetimeAuth(cipheredMessage, 16, cipheredMessage, 32, paddedMessage.Length - 32, cipheredMessage) != 0)
+            {
+                return -1;
+            }
 
             for (var i = 0; i < 16; ++i)
             {
-                c[i] = 0;
+                cipheredMessage[i] = 0;
             }
 
             return 0;
         }
 
-        public static Int32 CryptoSecretBoxOpen(Byte[] m, Byte[] c, Int64 d, Byte[] n, Byte[] k)
+        /// <summary>
+        /// The CryptoSecretboxOpen function verifies and decrypts a ciphertext
+        /// </summary>
+        /// <param name="paddedMessage"></param>
+        /// <param name="cipheredMessage"></param>
+        /// <param name="nounce"></param>
+        /// <param name="k"></param>
+        /// <returns></returns>
+        public static Int32 CryptoSecretBoxOpen(Byte[] paddedMessage, Byte[] cipheredMessage, Byte[] nounce, Byte[] k)
         {
             Byte[] x = new Byte[32];
 
-            if (d < 32)
+            if (cipheredMessage.Length < 32)
             {
                 return -1;
             }
 
-            CryptoStream(x, 32, n, k);
-
-            if (CryptoOnetimeauthVerify(c, 16, c, 32, d - 32, x) != 0)
+            if(CryptoStream(x, 32, nounce, k) != 0)
             {
                 return -1;
             }
 
-            CryptoStreamXor(m, c, d, n, k);
+            if (CryptoOnetimeauthVerify(cipheredMessage, 16, cipheredMessage, 32, cipheredMessage.Length - 32, x) != 0)
+            {
+                return -1;
+            }
+
+            CryptoStreamXor(paddedMessage, cipheredMessage, cipheredMessage.Length, nounce, k);
 
             for (var i = 0; i < 32; ++i)
             {
-                m[i] = 0;
+                paddedMessage[i] = 0;
             }
 
             return 0;
