@@ -50,9 +50,9 @@ namespace Nacl
         private static Int64[] Y = new Int64[] { 0x6658, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666 };
         private static Int64[] I = new Int64[] { 0xa0b0, 0x4a0e, 0x1b27, 0xc4ee, 0xe478, 0xad2f, 0x1806, 0x2f43, 0xd7a7, 0x3dfb, 0x0099, 0x2b4d, 0xdf0b, 0x4fc1, 0x2480, 0x2b83 };
 
-        public static UInt32 L32(UInt32 x, Int32 c) { return (x << c) | ((x & 0xffffffff) >> (32 - c)); }
+        private static UInt32 L32(UInt32 x, Int32 c) { return (x << c) | ((x & 0xffffffff) >> (32 - c)); }
 
-        public static UInt32 Ld32(Byte[] x, Int32 offset = 0)
+        private static UInt32 Ld32(Byte[] x, Int32 offset = 0)
         {
             UInt32 u = x[3 + offset];
             u = (u << 8) | x[2 + offset];
@@ -60,14 +60,13 @@ namespace Nacl
             return (u << 8) | x[0 + offset];
         }
 
-        public static UInt64 Dl64(Byte[] x, Int64 offset)
+        private static UInt64 Dl64(Byte[] x, Int64 offset)
         {
             UInt64 u = 0;
             for (var i = 0; i < 8; ++i) u = (u << 8) | x[i + offset];
             return u;
         }
-
-
+        
         private static void St32(Byte[] x, UInt32 u, Int32 offset = 0)
         {
             for (var i = 0; i < 4; ++i)
@@ -84,7 +83,7 @@ namespace Nacl
             }
         }
 
-        public static Int32 Vn(Byte[] x, Byte[] y, Int32 n, Int32 xOffset = 0)
+        private static Int32 Vn(Byte[] x, Byte[] y, Int32 n, Int32 xOffset = 0)
         {
             Int32 d = 0;
             for (var i = 0; i < n; ++i) d |= x[i + xOffset] ^ y[i];
@@ -148,7 +147,7 @@ namespace Nacl
                 }
             }
 
-            if(hsalsa)
+            if (hsalsa)
             {
                 for (i = 0; i < 16; ++i)
                 {
@@ -176,13 +175,13 @@ namespace Nacl
             }
         }
 
-        public static Int32 CryptoCoreSalsa20(Byte[] pout, Byte[] pin, Byte[] k, Byte[] c)
+        private static Int32 CryptoCoreSalsa20(Byte[] pout, Byte[] pin, Byte[] k, Byte[] c)
         {
             Core(pout, pin, k, c, false);
             return 0;
         }
 
-        public static Int32 CryptoCoreHSalsa20(Byte[] pout, Byte[] pin, Byte[] k, Byte[] c)
+        private static Int32 CryptoCoreHSalsa20(Byte[] pout, Byte[] pin, Byte[] k, Byte[] c)
         {
             Core(pout, pin, k, c, true);
             return 0;
@@ -288,161 +287,6 @@ namespace Nacl
         }
 
         private static Int32[] Minusp = new Int32[17] { 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252 };
-
-        private static Int32 CryptoOnetimeAuth(Byte[] pout, Int32 poutOffset, Byte[] m, Int64 mOffset, Int64 n, Byte[] k)
-        {
-            Int32 i = 0, j = 0, u = 0, s = 0;
-            Int32[] x = new Int32[17], r = new Int32[17], h = new Int32[17], c = new Int32[17], g = new Int32[17];
-
-            for (j = 0; j < 17; ++j)
-            {
-                r[j] = 0;
-                h[j] = 0;
-            }
-
-            for (j = 0; j < 16; ++j)
-            {
-                r[j] = 0xff & k[j];
-            }
-
-            r[3] &= 15;
-            r[4] &= 252;
-            r[7] &= 15;
-            r[8] &= 252;
-            r[11] &= 15;
-            r[12] &= 252;
-            r[15] &= 15;
-
-            while (n > 0)
-            {
-                for (j = 0; j < 17; ++j)
-                    c[j] = 0;
-
-                for (j = 0; (j < 16) && (j < n); ++j)
-                    c[j] = 0xff & m[mOffset + j];
-
-                c[j] = 1;
-                mOffset += (Int64)j; n -= (Int64)j;
-                Add1305(h, c);
-
-                for (i = 0; i < 17; ++i)
-                {
-                    x[i] = 0;
-
-                    for (j = 0; j < 17; ++j)
-                    {
-                        x[i] += h[j] * ((j <= i) ? r[i - j] : 320 * r[i + 17 - j]);
-                    }
-                }
-
-                for (i = 0; i < 17; ++i)
-                {
-                    h[i] = x[i];
-                }
-
-                u = 0;
-                for (j = 0; j < 16; ++j)
-                {
-                    u += h[j];
-                    h[j] = u & 255;
-                    u >>= 8;
-                }
-
-                u += h[16];
-                h[16] = u & 3;
-                u = 5 * (u >> 2);
-
-                for (j = 0; j < 16; ++j)
-                {
-                    u += h[j];
-                    h[j] = u & 255;
-                    u >>= 8;
-                }
-
-                u += h[16];
-                h[16] = u;
-            }
-
-            for (j = 0; j < 17; ++j)
-            {
-                g[j] = h[j];
-            }
-
-            Add1305(h, Minusp);
-            s = -(h[16] >> 7);
-
-            for (j = 0; j < 17; ++j)
-            {
-                h[j] ^= s & (g[j] ^ h[j]);
-            }
-
-            for (j = 0; j < 16; ++j)
-            {
-                c[j] = 0xff & k[j + 16];
-            }
-
-
-            c[16] = 0;
-            Add1305(h, c);
-
-            for (j = 0; j < 16; ++j)
-            {
-                pout[poutOffset + j] = (Byte)h[j];
-            }
-
-            return 0;
-        }
-
-        private static Int32 CryptoOnetimeauthVerify(Byte[] h, Int32 hoffset, Byte[] m, Int64 mOffset, Int64 n, Byte[] k)
-        {
-            Byte[] x = new Byte[16];
-            CryptoOnetimeAuth(x, 0, m, mOffset, n, k);
-            return CryptoVerify16(h, x, hoffset);
-        }
-
-        public static Int32 CryptoSecretBox(Byte[] c, Byte[] m, Int64 d, Byte[] n, Byte[] k)
-        {
-            if (d < 32)
-            {
-                return -1;
-            }
-
-            CryptoStreamXor(c, m, d, n, k);
-            CryptoOnetimeAuth(c, 16, c, 32, d - 32, c);
-
-            for (var i = 0; i < 16; ++i)
-            {
-                c[i] = 0;
-            }
-
-            return 0;
-        }
-
-        public static Int32 CryptoSecretBoxOpen(Byte[] m, Byte[] c, Int64 d, Byte[] n, Byte[] k)
-        {
-            Byte[] x = new Byte[32];
-
-            if (d < 32)
-            {
-                return -1;
-            }
-
-            CryptoStream(x, 32, n, k);
-
-            if (CryptoOnetimeauthVerify(c, 16, c, 32, d - 32, x) != 0)
-            {
-                return -1;
-            }
-
-            CryptoStreamXor(m, c, d, n, k);
-
-            for (var i = 0; i < 32; ++i)
-            {
-                m[i] = 0;
-            }
-
-            return 0;
-        }
 
         private static void Set25519(Int64[] /*gf*/ r, Int64[] /*gf*/ a)
         {
@@ -713,41 +557,501 @@ namespace Nacl
             return CryptoScalarmult(q, n, _9);
         }
 
-        public static Int32 CryptoBoxKeypair(Byte[] y, Byte[] x)
+        /// <summary>
+        /// The crypto_box_keypair function randomly generates a secret key and a corresponding public key. 
+        /// It guarantees that sk has crypto_box_SECRETKEYBYTES bytes and that pk has crypto_box_PUBLICKEYBYTES bytes. 
+        /// </summary>
+        /// <param name="publicKey">generated public key</param>
+        /// <param name="secretKey">generated secret key</param>
+        /// <returns>
+        ///     0 - for success or -1 - for failure
+        /// </returns>
+        public static Int32 CryptoBoxKeypair(Byte[] publicKey, Byte[] secretKey)
         {
-            RandomBytes(x);
-            return CryptoScalarmultBase(y, x);
+            RandomBytes(secretKey);
+            return CryptoScalarmultBase(publicKey, secretKey);
         }
 
-        public static Int32 CryptoBoxBeforenm(Byte[] k, Byte[] y, Byte[] x)
+        /// <summary>
+        /// Applications that send several messages to the same receiver can gain speed by splitting CryptoBox into two steps, 
+        /// <b>CryptoBoxBeforenm</b> and CryptoBoxAfternm. 
+        /// </summary>
+        /// <param name="k"></param>
+        /// <param name="publicKey"></param>
+        /// <param name="secretKey"></param>
+        /// <returns>
+        ///     0 - for success or -1 - for failure
+        /// </returns>
+        public static Int32 CryptoBoxBeforenm(Byte[] k, Byte[] publicKey, Byte[] secretKey)
         {
-            Byte[] s = new Byte[32];
-            CryptoScalarmult(s, x, y);
+            Byte[] s = new Byte[BOX_BEFORENMBYTES];
+            CryptoScalarmult(s, secretKey, publicKey);
             return CryptoCoreHSalsa20(k, _0, s, Sigma);
         }
 
-        public static Int32 CryptoBoxAfternm(Byte[] c, Byte[] m, Int64 d, Byte[] n, Byte[] k)
+        /// <summary>
+        /// Applications that send several messages to the same receiver can gain speed by splitting CryptoBox into two steps, 
+        /// CryptoBoxBeforenm and <b>CryptoBoxAfternm</b>. 
+        /// </summary>
+        /// <param name="cipheredMessage"></param>
+        /// <param name="paddedMessage"></param>
+        /// <param name="nounce"></param>
+        /// <param name="k"></param>
+        /// <returns></returns>
+        public static Int32 CryptoBoxAfternm(Byte[] cipheredMessage, Byte[] paddedMessage, Byte[] nounce, Byte[] k)
         {
-            return CryptoSecretBox(c, m, d, n, k);
+            return CryptoSecretBox(cipheredMessage, paddedMessage, paddedMessage.Length, nounce, k);
         }
 
-        public static Int32 CryptoBoxOpenAfternm(Byte[] m, Byte[] c, Int64 d, Byte[] n, Byte[] k)
+        /// <summary>
+        /// Applications that receive several messages from the same 
+        /// sender can gain speed by splitting CryptoBoxOpen into two steps, CryptoBoxBeforenm and <b>CryptoBoxOpenAfternm</b>. 
+        /// </summary>
+        /// <param name="paddedMessage"></param>
+        /// <param name="cipheredMessage"></param>
+        /// <param name="nounce"></param>
+        /// <param name="k"></param>
+        /// <returns></returns>
+        public static Int32 CryptoBoxOpenAfternm(Byte[] paddedMessage, Byte[] cipheredMessage, Byte[] nounce, Byte[] k)
         {
-            return CryptoSecretBoxOpen(m, c, d, n, k);
+            return CryptoSecretBoxOpen(paddedMessage, cipheredMessage, cipheredMessage.Length, nounce, k);
         }
 
-        public static Int32 CryptoBox(Byte[] c, Byte[] m, Int64 d, Byte[] nonce, Byte[] theirPublicBoxingKey, Byte[] ourSecretBoxingKey)
+        /// <summary>
+        /// The crypto_box function encrypts and authenticates a message m, remember that all 
+        /// messages are 0-padded versions of messages with BOX_ZEROBYTES.
+        /// </summary>
+        /// <param name="cipheredMessage"></param>
+        /// <param name="paddedMessage"></param>
+        /// <param name="nounce"></param>
+        /// <param name="publicKey"></param>
+        /// <param name="secretKey"></param>
+        /// <returns>
+        ///     0 for success or -1 for failure
+        /// </returns>
+        public static Int32 CryptoBox(Byte[] cipheredMessage, Byte[] paddedMessage, Byte[] nounce, Byte[] publicKey, Byte[] secretKey)
         {
-            Byte[] k = new Byte[32];
-            CryptoBoxBeforenm(k, theirPublicBoxingKey, ourSecretBoxingKey);
-            return CryptoBoxAfternm(c, m, d, nonce, k);
+            Byte[] k = new Byte[BOX_BEFORENMBYTES];
+            CryptoBoxBeforenm(k, publicKey, secretKey);
+            return CryptoBoxAfternm(cipheredMessage, paddedMessage, nounce, k);
         }
 
-        public static Int32 CryptoBoxOpen(Byte[] m, Byte[] c, Int64 d, Byte[] n, Byte[] y, Byte[] x)
+        /// <summary>
+        /// The crypto_box_open function verifies and decrypts a ciphertext
+        /// </summary>
+        /// <param name="paddedMessage"></param>
+        /// <param name="cipheredMessage"></param>
+        /// <param name="d"></param>
+        /// <param name="nounce"></param>
+        /// <param name="publicKey"></param>
+        /// <param name="secretKey"></param>
+        /// <returns>
+        ///     0 for success or -1 for failure
+        /// </returns>
+        public static Int32 CryptoBoxOpen(Byte[] paddedMessage, Byte[] cipheredMessage, Byte[] nounce, Byte[] publicKey, Byte[] secretKey)
         {
-            Byte[] k = new Byte[32];
-            CryptoBoxBeforenm(k, y, x);
-            return CryptoBoxOpenAfternm(m, c, d, n, k);
+            Byte[] k = new Byte[BOX_BEFORENMBYTES];
+            CryptoBoxBeforenm(k, publicKey, secretKey);
+            return CryptoBoxOpenAfternm(paddedMessage, cipheredMessage, nounce, k);
+        }
+
+        /// <summary>
+        /// Randomly generates a secret key and a corresponding public key. 
+        /// </summary>
+        /// <param name="publicKey"></param>
+        /// <param name="secretKey"></param>
+        /// <returns></returns>
+        public static Int32 CryptoSignKeypair(Byte[] publicKey, Byte[] secretKey)
+        {
+            Byte[] d = new Byte[64];
+            Int64[][] /*gf*/ p = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
+
+            RandomBytes(secretKey);
+
+            if (CryptoHash(d, secretKey, 32) != 0)
+            {
+                return -1;
+            }
+
+            d[0] &= 248;
+            d[31] &= 127;
+            d[31] |= 64;
+
+            Scalarbase(p, d, 0);
+            Pack(publicKey, p);
+
+            for (var i = 0; i < 32; ++i)
+            {
+                secretKey[32 + i] = publicKey[i];
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// The crypto_sign function signs a message m using the signer's secret key secretKey.
+        /// </summary>
+        /// <param name="signedMessage"></param>
+        /// <param name="message"></param>
+        /// <param name="n"></param>
+        /// <param name="secretKey"></param>
+        /// <returns></returns>
+        public static Int32 CryptoSign(Byte[] signedMessage, Byte[] message, Byte[] secretKey)
+        {
+            Byte[] d = new Byte[64];
+            Byte[] h = new Byte[64];
+            Byte[] r = new Byte[64];
+            Int64[] x = new Int64[64];
+            Int64[][] /*gf*/ p/*[4]*/ = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
+
+            CryptoHash(d, secretKey, 32);
+
+            d[0] &= 248;
+            d[31] &= 127;
+            d[31] |= 64;
+
+            for (var i = 0; i < message.Length; ++i)
+            {
+                signedMessage[64 + i] = message[i];
+            }
+
+            for (var i = 0; i < 32; ++i)
+            {
+                signedMessage[32 + i] = d[32 + i];
+            }
+
+            Byte[] smd = new Byte[signedMessage.Length];
+            Array.Copy(signedMessage, 32, smd, 0, signedMessage.Length - 32);
+            CryptoHash(r, smd, message.Length + 64);
+
+            Reduce(r);
+            Scalarbase(p, r, 0);
+            Pack(signedMessage, p);
+
+            for (int i = 0; i < 32; ++i)
+            {
+                signedMessage[i + 32] = secretKey[i + 32];
+            }
+
+            CryptoHash(h, signedMessage, message.Length + 64);
+            Reduce(h);
+
+            for (var i = 0; i < 64; ++i)
+            {
+                x[i] = 0;
+            }
+
+            for (var i = 0; i < 32; ++i)
+            {
+                x[i] = 0xff & r[i];
+            }
+
+            for (var i = 0; i < 32; ++i)
+            {
+                for (int j = 0; j < 32; ++j)
+                {
+                    x[i + j] += (0xff & h[i]) * (0xff & d[j]);
+                }
+            }
+
+            ModL(signedMessage, 32, x);
+
+            return 0;
+        }
+
+        /// <summary>
+        /// The CryptoSignOpen function verifies the signature
+        /// </summary>
+        /// <param name="message">returned clear message</param>
+        /// <param name="signedMessage">signed message</param>
+        /// <param name="publicKey">public key</param>
+        /// <returns></returns>
+        public static Int32 CryptoSignOpen(Byte[] message, Byte[] signedMessage, Byte[] publicKey)
+        {
+            Byte[] t = new Byte[32];
+            Byte[] h = new Byte[64];
+            Int64[][] /*gf*/ p = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
+            Int64[][] /*gf*/ q = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
+            Int32 messageSize = signedMessage.Length;
+
+            Byte[] tsm = new Byte[signedMessage.Length];
+
+            if (signedMessage.Length < 64)
+            {
+                return -1;
+            }
+
+            if (Unpackneg(q, publicKey) != 0)
+            {
+                return -1;
+            }
+
+            for (var i = 0; i < signedMessage.Length; ++i)
+            {
+                tsm[i] = signedMessage[i];
+            }
+
+            for (var i = 0; i < 32; ++i)
+            {
+                tsm[i + 32] = publicKey[i];
+            }
+
+            CryptoHash(h, tsm, signedMessage.Length);
+            Reduce(h);
+            Scalarmult(p, q, h, 0);
+
+            Scalarbase(q, signedMessage, 32);
+            Add(p, q);
+            Pack(t, p);
+
+            if (CryptoVerify32(signedMessage, t) != 0)
+            {
+                for (var i = 0; i < messageSize; ++i)
+                {
+                    tsm[i] = 0;
+                }
+
+                return -1;
+            }
+
+            for (var i = 0; i < signedMessage.Length - 64; ++i)
+            {
+                message[i] = signedMessage[i + 64];
+            }
+
+            return 0;
+        }
+        
+        /// <summary>
+        /// crypto_hash is currently an implementation of SHA-512.
+        /// </summary>
+        /// <param name="hash">hash for message</param>
+        /// <param name="message">message to calculate the hash</param>
+        /// <param name="n"></param>
+        /// <returns>
+        ///     0 for success or -1 for failure
+        /// </returns>
+        public static Int32 CryptoHash(Byte[] hash, Byte[] message, Int32 n)
+        {
+            Byte[] h = new Byte[HASH_BYTES];
+            Byte[] x = new Byte[256];
+            Int32 b = n;
+
+            for (var i = 0; i < HASH_BYTES; i++)
+            {
+                h[i] = iv[i];
+            }
+
+            CryptoHashBlocks(h, message, n);
+
+            for (var i = 0; i < HASH_BYTES; i++)
+            {
+                for (var j = 0; j < message.Length; j++)
+                {
+                    message[j] += (Byte)n;
+                }
+
+                n &= 127;
+
+                for (var j = 0; j < message.Length; j++)
+                {
+                    message[j] -= (Byte)n;
+                }
+            }
+
+            for (var i = 0; i < 256; i++)
+            {
+                x[i] = 0;
+            }
+
+            for (var i = 0; i < n; i++)
+            {
+                x[i] = message[i];
+            }
+
+            x[n] = 128;
+
+            n = ((n < 112) ? 256 - 128 * 1 : 256 - 128 * 0);
+            x[n - 9] = (Byte)(b >> 61);
+
+            Ts64(x, (UInt64)b << 3, n - 8);
+
+            CryptoHashBlocks(h, x, n);
+
+            for (var i = 0; i < HASH_BYTES; i++)
+            {
+                hash[i] = h[i];
+            }
+
+            return 0;
+        }
+
+
+        public static Int32 CryptoOnetimeAuth(Byte[] pout, Int32 poutOffset, Byte[] m, Int64 mOffset, Int64 n, Byte[] k)
+        {
+            Int32 i = 0, j = 0, u = 0, s = 0;
+            Int32[] x = new Int32[17], r = new Int32[17], h = new Int32[17], c = new Int32[17], g = new Int32[17];
+
+            for (j = 0; j < 17; ++j)
+            {
+                r[j] = 0;
+                h[j] = 0;
+            }
+
+            for (j = 0; j < 16; ++j)
+            {
+                r[j] = 0xff & k[j];
+            }
+
+            r[3] &= 15;
+            r[4] &= 252;
+            r[7] &= 15;
+            r[8] &= 252;
+            r[11] &= 15;
+            r[12] &= 252;
+            r[15] &= 15;
+
+            while (n > 0)
+            {
+                for (j = 0; j < 17; ++j)
+                    c[j] = 0;
+
+                for (j = 0; (j < 16) && (j < n); ++j)
+                    c[j] = 0xff & m[mOffset + j];
+
+                c[j] = 1;
+                mOffset += (Int64)j; n -= (Int64)j;
+                Add1305(h, c);
+
+                for (i = 0; i < 17; ++i)
+                {
+                    x[i] = 0;
+
+                    for (j = 0; j < 17; ++j)
+                    {
+                        x[i] += h[j] * ((j <= i) ? r[i - j] : 320 * r[i + 17 - j]);
+                    }
+                }
+
+                for (i = 0; i < 17; ++i)
+                {
+                    h[i] = x[i];
+                }
+
+                u = 0;
+                for (j = 0; j < 16; ++j)
+                {
+                    u += h[j];
+                    h[j] = u & 255;
+                    u >>= 8;
+                }
+
+                u += h[16];
+                h[16] = u & 3;
+                u = 5 * (u >> 2);
+
+                for (j = 0; j < 16; ++j)
+                {
+                    u += h[j];
+                    h[j] = u & 255;
+                    u >>= 8;
+                }
+
+                u += h[16];
+                h[16] = u;
+            }
+
+            for (j = 0; j < 17; ++j)
+            {
+                g[j] = h[j];
+            }
+
+            Add1305(h, Minusp);
+            s = -(h[16] >> 7);
+
+            for (j = 0; j < 17; ++j)
+            {
+                h[j] ^= s & (g[j] ^ h[j]);
+            }
+
+            for (j = 0; j < 16; ++j)
+            {
+                c[j] = 0xff & k[j + 16];
+            }
+
+
+            c[16] = 0;
+            Add1305(h, c);
+
+            for (j = 0; j < 16; ++j)
+            {
+                pout[poutOffset + j] = (Byte)h[j];
+            }
+
+            return 0;
+        }
+
+        public static Int32 CryptoOnetimeauthVerify(Byte[] h, Int32 hoffset, Byte[] m, Int64 mOffset, Int64 n, Byte[] k)
+        {
+            Byte[] x = new Byte[16];
+            CryptoOnetimeAuth(x, 0, m, mOffset, n, k);
+            return CryptoVerify16(h, x, hoffset);
+        }
+
+        public static Int32 CryptoSecretBox(Byte[] c, Byte[] m, Int64 d, Byte[] n, Byte[] k)
+        {
+            if (d < 32)
+            {
+                return -1;
+            }
+
+            CryptoStreamXor(c, m, d, n, k);
+            CryptoOnetimeAuth(c, 16, c, 32, d - 32, c);
+
+            for (var i = 0; i < 16; ++i)
+            {
+                c[i] = 0;
+            }
+
+            return 0;
+        }
+
+        public static Int32 CryptoSecretBoxOpen(Byte[] m, Byte[] c, Int64 d, Byte[] n, Byte[] k)
+        {
+            Byte[] x = new Byte[32];
+
+            if (d < 32)
+            {
+                return -1;
+            }
+
+            CryptoStream(x, 32, n, k);
+
+            if (CryptoOnetimeauthVerify(c, 16, c, 32, d - 32, x) != 0)
+            {
+                return -1;
+            }
+
+            CryptoStreamXor(m, c, d, n, k);
+
+            for (var i = 0; i < 32; ++i)
+            {
+                m[i] = 0;
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// generate number of random bytes equal to array size.
+        /// </summary>
+        /// <param name="d">generated random byte</param>
+        public static void RandomBytes(Byte[] d)
+        {
+            using (RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider())
+            {
+                rng.GetBytes(d);
+            }
         }
 
         private static UInt64 R(UInt64 x, int c) { return (x >> c) | (x << (64 - c)); }
@@ -759,28 +1063,28 @@ namespace Nacl
         private static UInt64 sigma1(UInt64 x) { return R(x, 19) ^ R(x, 61) ^ (x >> 6); }
 
         private static UInt64[] K = new UInt64[80]
-    {
-      0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc,
-      0x3956c25bf348b538, 0x59f111f1b605d019, 0x923f82a4af194f9b, 0xab1c5ed5da6d8118,
-      0xd807aa98a3030242, 0x12835b0145706fbe, 0x243185be4ee4b28c, 0x550c7dc3d5ffb4e2,
-      0x72be5d74f27b896f, 0x80deb1fe3b1696b1, 0x9bdc06a725c71235, 0xc19bf174cf692694,
-      0xe49b69c19ef14ad2, 0xefbe4786384f25e3, 0x0fc19dc68b8cd5b5, 0x240ca1cc77ac9c65,
-      0x2de92c6f592b0275, 0x4a7484aa6ea6e483, 0x5cb0a9dcbd41fbd4, 0x76f988da831153b5,
-      0x983e5152ee66dfab, 0xa831c66d2db43210, 0xb00327c898fb213f, 0xbf597fc7beef0ee4,
-      0xc6e00bf33da88fc2, 0xd5a79147930aa725, 0x06ca6351e003826f, 0x142929670a0e6e70,
-      0x27b70a8546d22ffc, 0x2e1b21385c26c926, 0x4d2c6dfc5ac42aed, 0x53380d139d95b3df,
-      0x650a73548baf63de, 0x766a0abb3c77b2a8, 0x81c2c92e47edaee6, 0x92722c851482353b,
-      0xa2bfe8a14cf10364, 0xa81a664bbc423001, 0xc24b8b70d0f89791, 0xc76c51a30654be30,
-      0xd192e819d6ef5218, 0xd69906245565a910, 0xf40e35855771202a, 0x106aa07032bbd1b8,
-      0x19a4c116b8d2d0c8, 0x1e376c085141ab53, 0x2748774cdf8eeb99, 0x34b0bcb5e19b48a8,
-      0x391c0cb3c5c95a63, 0x4ed8aa4ae3418acb, 0x5b9cca4f7763e373, 0x682e6ff3d6b2b8a3,
-      0x748f82ee5defb2fc, 0x78a5636f43172f60, 0x84c87814a1f0ab72, 0x8cc702081a6439ec,
-      0x90befffa23631e28, 0xa4506cebde82bde9, 0xbef9a3f7b2c67915, 0xc67178f2e372532b,
-      0xca273eceea26619c, 0xd186b8c721c0c207, 0xeada7dd6cde0eb1e, 0xf57d4f7fee6ed178,
-      0x06f067aa72176fba, 0x0a637dc5a2c898a6, 0x113f9804bef90dae, 0x1b710b35131c471b,
-      0x28db77f523047d84, 0x32caab7b40c72493, 0x3c9ebe0a15c9bebc, 0x431d67c49c100d4c,
-      0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
-    };
+        {
+          0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc,
+          0x3956c25bf348b538, 0x59f111f1b605d019, 0x923f82a4af194f9b, 0xab1c5ed5da6d8118,
+          0xd807aa98a3030242, 0x12835b0145706fbe, 0x243185be4ee4b28c, 0x550c7dc3d5ffb4e2,
+          0x72be5d74f27b896f, 0x80deb1fe3b1696b1, 0x9bdc06a725c71235, 0xc19bf174cf692694,
+          0xe49b69c19ef14ad2, 0xefbe4786384f25e3, 0x0fc19dc68b8cd5b5, 0x240ca1cc77ac9c65,
+          0x2de92c6f592b0275, 0x4a7484aa6ea6e483, 0x5cb0a9dcbd41fbd4, 0x76f988da831153b5,
+          0x983e5152ee66dfab, 0xa831c66d2db43210, 0xb00327c898fb213f, 0xbf597fc7beef0ee4,
+          0xc6e00bf33da88fc2, 0xd5a79147930aa725, 0x06ca6351e003826f, 0x142929670a0e6e70,
+          0x27b70a8546d22ffc, 0x2e1b21385c26c926, 0x4d2c6dfc5ac42aed, 0x53380d139d95b3df,
+          0x650a73548baf63de, 0x766a0abb3c77b2a8, 0x81c2c92e47edaee6, 0x92722c851482353b,
+          0xa2bfe8a14cf10364, 0xa81a664bbc423001, 0xc24b8b70d0f89791, 0xc76c51a30654be30,
+          0xd192e819d6ef5218, 0xd69906245565a910, 0xf40e35855771202a, 0x106aa07032bbd1b8,
+          0x19a4c116b8d2d0c8, 0x1e376c085141ab53, 0x2748774cdf8eeb99, 0x34b0bcb5e19b48a8,
+          0x391c0cb3c5c95a63, 0x4ed8aa4ae3418acb, 0x5b9cca4f7763e373, 0x682e6ff3d6b2b8a3,
+          0x748f82ee5defb2fc, 0x78a5636f43172f60, 0x84c87814a1f0ab72, 0x8cc702081a6439ec,
+          0x90befffa23631e28, 0xa4506cebde82bde9, 0xbef9a3f7b2c67915, 0xc67178f2e372532b,
+          0xca273eceea26619c, 0xd186b8c721c0c207, 0xeada7dd6cde0eb1e, 0xf57d4f7fee6ed178,
+          0x06f067aa72176fba, 0x0a637dc5a2c898a6, 0x113f9804bef90dae, 0x1b710b35131c471b,
+          0x28db77f523047d84, 0x32caab7b40c72493, 0x3c9ebe0a15c9bebc, 0x431d67c49c100d4c,
+          0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
+        };
 
         private static Int32 CryptoHashBlocks(Byte[] x, Byte[] m, Int32 n)
         {
@@ -845,7 +1149,8 @@ namespace Nacl
             return n;
         }
 
-        private static Byte[] iv = new Byte[64]{
+        private static Byte[] iv = new Byte[64]
+        {
           0x6a,0x09,0xe6,0x67,0xf3,0xbc,0xc9,0x08,
           0xbb,0x67,0xae,0x85,0x84,0xca,0xa7,0x3b,
           0x3c,0x6e,0xf3,0x72,0xfe,0x94,0xf8,0x2b,
@@ -854,69 +1159,7 @@ namespace Nacl
           0x9b,0x05,0x68,0x8c,0x2b,0x3e,0x6c,0x1f,
           0x1f,0x83,0xd9,0xab,0xfb,0x41,0xbd,0x6b,
           0x5b,0xe0,0xcd,0x19,0x13,0x7e,0x21,0x79
-    };
-
-        /// <summary>
-        /// crypto_hash is currently an implementation of SHA-512.
-        /// </summary>
-        /// <param name="pout"></param>
-        /// <param name="m"></param>
-        /// <param name="n"></param>
-        /// <returns></returns>
-        public static Int32 CryptoHash(Byte[] pout, Byte[] m, Int32 n)
-        {
-            Byte[] h = new Byte[64];
-            Byte[] x = new Byte[256];
-            Int32 b = n;
-
-            for (var i = 0; i < 64; i++)
-            {
-                h[i] = iv[i];
-            }
-
-            CryptoHashBlocks(h, m, n);
-
-            for (var i = 0; i < 64; i++)
-            {
-                for (var j = 0; j < m.Length; j++)
-                {
-                    m[j] += (Byte)n;
-                }
-
-                n &= 127;
-
-                for (var j = 0; j < m.Length; j++)
-                {
-                    m[j] -= (Byte)n;
-                }
-            }
-
-            for (var i = 0; i < 256; i++)
-            {
-                x[i] = 0;
-            }
-
-            for (var i = 0; i < n; i++)
-            {
-                x[i] = m[i];
-            }
-
-            x[n] = 128;
-
-            n = ((n < 112) ? 256 - 128 * 1 : 256 - 128 * 0);
-            x[n - 9] = (Byte)(b >> 61);
-
-            Ts64(x, (UInt64)b << 3, n - 8);
-
-            CryptoHashBlocks(h, x, n);
-
-            for (var i = 0; i < 64; i++)
-            {
-                pout[i] = h[i];
-            }
-
-            return 0;
-        }
+        };
 
         private static void Add(Int64[][] p, Int64[][] q)
         {
@@ -1056,96 +1299,6 @@ namespace Nacl
             ModL(r, 0, x);
         }
 
-        public static Int32 CryptoSignKeypair(Byte[] pk, Byte[] sk)
-        {
-            Byte[] d = new Byte[64];
-            Int64[][] /*gf*/ p = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
-
-            RandomBytes(sk);
-
-            if(CryptoHash(d, sk, 32) != 0)
-            {
-                return -1;
-            }
-
-            d[0] &= 248;
-            d[31] &= 127;
-            d[31] |= 64;
-
-            Scalarbase(p,d, 0);
-            Pack(pk,p);
-
-            for (var i = 0; i < 32; ++i)
-            {
-                sk[32 + i] = pk[i];
-            }
-
-            return 0;
-        }
-
-        public static Int32 CryptoSign(Byte[] sm, Byte[] m, Int32 n, Byte[] sk)
-        {
-            Byte[] d = new Byte[64];
-            Byte[] h = new Byte[64];
-            Byte[] r = new Byte[64];
-            Int64[] x = new Int64[64];
-            Int64[][] /*gf*/ p/*[4]*/ = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
-
-            CryptoHash(d, sk, 32);
-
-            d[0] &= 248;
-            d[31] &= 127;
-            d[31] |= 64;
-
-            for (var i = 0; i < n; ++i)
-            {
-                sm[64 + i] = m[i];
-            }
-
-            for (var i = 0; i < 32; ++i)
-            {
-                sm[32 + i] = d[32 + i];
-            }
-
-            Byte[] smd = new Byte[sm.Length];
-            Array.Copy(sm, 32, smd, 0, sm.Length-32);
-            CryptoHash(r, smd, n + 64);
-
-            Reduce(r);
-            Scalarbase(p, r, 0);
-            Pack(sm, p);
-
-            for (int i = 0; i < 32; ++i)
-            {
-                sm[i + 32] = sk[i + 32];
-            }
-
-            CryptoHash(h, sm, n + 64);
-            Reduce(h);
-
-            for (var i = 0; i < 64; ++i)
-            {
-                x[i] = 0;
-            }
-
-            for (var i = 0; i < 32; ++i)
-            {
-                x[i] = 0xff & r[i];
-            }
-
-            for (var i = 0; i < 32; ++i)
-            {
-                for (int j = 0; j < 32; ++j)
-                {
-                    x[i + j] += (0xff & h[i]) * (0xff & d[j]);
-                }
-            }
-
-            ModL(sm, 32, x);
-
-            return 0;
-        }
-
         private static Int32 Unpackneg(Int64[][] /*gf*/ r/*[4]*/, Byte[] p/*[32]*/)
         {
             Int64[] /*gf*/ t = new Int64[GF_LEN],
@@ -1199,73 +1352,5 @@ namespace Nacl
             return 0;
         }
 
-        public static Int32 CryptoSignOpen(Byte[] m, Byte[] sm, Int32 n, Byte[] pk)
-        {
-            Byte[] t = new Byte[32];
-            Byte[] h = new Byte[64];
-            Int64[][] /*gf*/ p = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
-            Int64[][] /*gf*/ q = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
-
-            Byte[] tsm = new Byte[sm.Length];
-
-            if (n < 64)
-            {
-                return -1;
-            }
-
-            if (Unpackneg(q, pk) != 0)
-            {
-                return -1;
-            }
-
-            for (var i = 0; i < n; ++i)
-            {
-                tsm[i] = sm[i];
-            }
-
-            for (var i = 0; i < 32; ++i)
-            {
-                tsm[i + 32] = pk[i];
-            }
-
-            CryptoHash(h, tsm, n);
-            Reduce(h);
-            Scalarmult(p, q, h, 0);
-
-            Scalarbase(q, sm, 32);
-            Add(p, q);
-            Pack(t, p);
-
-            n -= 64;
-            if (CryptoVerify32(sm, t) != 0)
-            {
-                for (var i = 0; i < n; ++i)
-                {
-                    tsm[i] = 0;
-                }
-
-                return -1;
-            }
-
-            for (var i = 0; i < sm.Length; ++i)
-            {
-                tsm[i] = 0;
-            }
-
-            for (var i = 0; i < n; ++i)
-            {
-                m[i] = sm[i + 64];
-            }
-            //        mlen[0] = n;
-            return 0;
-        }
-
-        public static void RandomBytes(Byte[] d)
-        {
-            using (RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider())
-            {
-                rng.GetBytes(d);
-            }
-        }
     }
 }

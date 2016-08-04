@@ -110,7 +110,7 @@ namespace NaCl.Tests
             Byte[] paddedMessage = new Byte[TweetNaCl.BOX_ZEROBYTES + bMessage.Length];
             Byte[] encMessage = new Byte[paddedMessage.Length];
             Byte[] decMessage = new Byte[encMessage.Length];
-            Byte[] nonce = new Byte[TweetNaCl.BOX_NONCEBYTES];
+            Byte[] nounce = new Byte[TweetNaCl.BOX_NONCEBYTES];
             Byte[] k = new Byte[TweetNaCl.BOX_BEFORENMBYTES];
 
             var result = 1;
@@ -120,13 +120,13 @@ namespace NaCl.Tests
             result = TweetNaCl.CryptoBoxKeypair(pk, sk);
             Assert.AreNotEqual(result, -1, "key pair generation failed.");
 
-            TweetNaCl.RandomBytes(nonce);
+            TweetNaCl.RandomBytes(nounce);
             Assert.AreNotEqual(result, -1, "randombytes generation failed.");
 
             result = TweetNaCl.CryptoBoxBeforenm(k, pk, sk);
             Assert.AreNotEqual(result, -1, "K generation for encryption failed.");
 
-            result = TweetNaCl.CryptoBoxAfternm(encMessage, paddedMessage, paddedMessage.Length, nonce, k);
+            result = TweetNaCl.CryptoBoxAfternm(encMessage, paddedMessage, nounce, k);
             Assert.AreNotEqual(result, -1, "encryption failed.");
         }
 
@@ -140,7 +140,7 @@ namespace NaCl.Tests
             Byte[] paddedMessage = new Byte[TweetNaCl.BOX_ZEROBYTES + bMessage.Length];
             Byte[] encMessage = new Byte[paddedMessage.Length];
             Byte[] decMessage = new Byte[encMessage.Length];
-            Byte[] nonce = new Byte[TweetNaCl.BOX_NONCEBYTES];
+            Byte[] nounce = new Byte[TweetNaCl.BOX_NONCEBYTES];
             Byte[] k = new Byte[TweetNaCl.BOX_BEFORENMBYTES];
 
             var result = -10;
@@ -150,16 +150,16 @@ namespace NaCl.Tests
             TweetNaCl.CryptoBoxKeypair(pk, sk);
             Assert.AreNotEqual(result, -1, "key pair generation failed.");
 
-            TweetNaCl.RandomBytes(nonce);
+            TweetNaCl.RandomBytes(nounce);
             Assert.AreNotEqual(result, -1, "randombytes generation failed.");
 
             result = TweetNaCl.CryptoBoxBeforenm(k, pk, sk);
             Assert.AreNotEqual(result, -1, "K generation for encryption failed.");
 
-            result = TweetNaCl.CryptoBoxAfternm(encMessage, paddedMessage, paddedMessage.Length, nonce, k);
+            result = TweetNaCl.CryptoBoxAfternm(encMessage, paddedMessage, nounce, k);
             Assert.AreNotEqual(result, -1, "encryption failed.");
 
-            result = TweetNaCl.CryptoBoxOpenAfternm(decMessage, encMessage, encMessage.Length, nonce, k);
+            result = TweetNaCl.CryptoBoxOpenAfternm(decMessage, encMessage, nounce, k);
             Assert.AreNotEqual(result, -1, "decryption failed.");
         }
 
@@ -174,7 +174,7 @@ namespace NaCl.Tests
             Byte[] paddedMessage = new Byte[TweetNaCl.BOX_ZEROBYTES + bMessage.Length];
             Byte[] encMessage = new Byte[paddedMessage.Length];
             Byte[] decMessage = new Byte[encMessage.Length];
-            Byte[] nonce = new Byte[TweetNaCl.BOX_NONCEBYTES];
+            Byte[] nounce = new Byte[TweetNaCl.BOX_NONCEBYTES];
             Byte[] k = new Byte[TweetNaCl.BOX_BEFORENMBYTES];
 
             var result = -10;
@@ -184,10 +184,10 @@ namespace NaCl.Tests
             TweetNaCl.CryptoBoxKeypair(pk, sk);
             Assert.AreNotEqual(result, -1, "key pair generation failed.");
 
-            TweetNaCl.RandomBytes(nonce);
+            TweetNaCl.RandomBytes(nounce);
             Assert.AreNotEqual(result, -1, "randombytes generation failed.");
 
-            TweetNaCl.CryptoBox(encMessage, paddedMessage, paddedMessage.Count(), nonce, pk, sk);
+            TweetNaCl.CryptoBox(encMessage, paddedMessage, nounce, pk, sk);
             Assert.AreNotEqual(result, -1, "encryption failed.");
         }
 
@@ -207,7 +207,7 @@ namespace NaCl.Tests
             Byte[] paddedMessage = new Byte[TweetNaCl.BOX_ZEROBYTES + bMessage.Length];
             Byte[] encMessage = new Byte[paddedMessage.Length];
             Byte[] decMessage = new Byte[encMessage.Length];
-            Byte[] nonce = new Byte[TweetNaCl.BOX_NONCEBYTES];
+            Byte[] nounce = new Byte[TweetNaCl.BOX_NONCEBYTES];
             Byte[] k = new Byte[TweetNaCl.BOX_BEFORENMBYTES];
 
             var result = -10;
@@ -220,13 +220,13 @@ namespace NaCl.Tests
             TweetNaCl.CryptoBoxKeypair(bpk, bsk);
             Assert.AreNotEqual(result, -1, "key pair B generation failed.");
 
-            TweetNaCl.RandomBytes(nonce);
+            TweetNaCl.RandomBytes(nounce);
             Assert.AreNotEqual(result, -1, "randombytes generation failed.");
 
-            TweetNaCl.CryptoBox(encMessage, paddedMessage, paddedMessage.Count(), nonce, bpk, ask);
+            TweetNaCl.CryptoBox(encMessage, paddedMessage, nounce, bpk, ask);
             Assert.AreNotEqual(result, -1, "encryption failed.");
 
-            TweetNaCl.CryptoBoxOpen(decMessage, encMessage, encMessage.Count(), nonce, apk, bsk);
+            TweetNaCl.CryptoBoxOpen(decMessage, encMessage, nounce, apk, bsk);
             Assert.AreNotEqual(result, -1, "decryption failed.");
         }
 
@@ -246,7 +246,7 @@ namespace NaCl.Tests
             Byte[] paddedMessage = new Byte[TweetNaCl.BOX_ZEROBYTES + bMessage.Length];
             Byte[] encMessage = new Byte[paddedMessage.Length];
             Byte[] decMessage = new Byte[encMessage.Length];
-            Byte[] nonce = new Byte[TweetNaCl.BOX_NONCEBYTES];
+            Byte[] nounce = new Byte[TweetNaCl.BOX_NONCEBYTES];
             Byte[] k = new Byte[TweetNaCl.BOX_BEFORENMBYTES];
 
             var result = -10;
@@ -259,13 +259,13 @@ namespace NaCl.Tests
             TweetNaCl.CryptoBoxKeypair(bpk, bsk);
             Assert.AreNotEqual(result, -1, "key pair B generation failed.");
 
-            TweetNaCl.RandomBytes(nonce);
+            TweetNaCl.RandomBytes(nounce);
             Assert.AreNotEqual(result, -1, "randombytes generation failed.");
 
-            TweetNaCl.CryptoBox(encMessage, paddedMessage, paddedMessage.Count(), nonce, bpk, ask);
+            TweetNaCl.CryptoBox(encMessage, paddedMessage, nounce, bpk, ask);
             Assert.AreNotEqual(result, -1, "encryption failed.");
 
-            TweetNaCl.CryptoBoxOpen(decMessage, encMessage, encMessage.Count(), nonce, apk, bsk);
+            TweetNaCl.CryptoBoxOpen(decMessage, encMessage, nounce, apk, bsk);
             Assert.AreNotEqual(result, -1, "decryption failed.");
         }
 
@@ -311,7 +311,7 @@ namespace NaCl.Tests
             var result = TweetNaCl.CryptoSignKeypair(spk, ssk);
             Assert.AreNotEqual(result, -1, "Message sign keyparis generation failed.");
 
-            result = TweetNaCl.CryptoSign(sMessage, bMessage, bMessage.Length, ssk);
+            result = TweetNaCl.CryptoSign(sMessage, bMessage, ssk);
             Assert.AreNotEqual(result, -1, "Message sign failed.");
         }
 
@@ -328,10 +328,10 @@ namespace NaCl.Tests
             var result = TweetNaCl.CryptoSignKeypair(spk, ssk);
             Assert.AreNotEqual(result, -1, "Message sign keyparis generation failed.");
 
-            result = TweetNaCl.CryptoSign(sMessage, bMessage, bMessage.Length, ssk);
+            result = TweetNaCl.CryptoSign(sMessage, bMessage, ssk);
             Assert.AreNotEqual(result, -1, "Message sign failed.");
 
-            result = TweetNaCl.CryptoSignOpen(cMessage, sMessage, sMessage.Length, spk);
+            result = TweetNaCl.CryptoSignOpen(cMessage, sMessage, spk);
             Assert.AreNotEqual(result, -1, "Message sign verification failed.");
 
             Assert.AreEqual(Encoding.UTF8.GetString(cMessage), message, "Messages sign verification failed.");
