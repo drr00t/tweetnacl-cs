@@ -65,13 +65,41 @@ namespace NaCl.Tests
         }
 
         [Test]
+        public void TestForCryptoScalarmult()
+        {
+            Byte[] n = new Byte[TweetNaCl.SCALARMULT_BYTES];
+            Byte[] p = new Byte[TweetNaCl.SCALARMULT_SCALARBYTES];
+            Byte[] q = new Byte[TweetNaCl.SCALARMULT_BYTES];
+
+            TweetNaCl.RandomBytes(n);
+            TweetNaCl.RandomBytes(p);
+
+            q = TweetNaCl.CryptoScalarmult(n, p);
+            Assert.AreEqual(Encoding.UTF7.GetString(q).Length, 32, "wrong size for resulting group element q.");
+        }
+
+        [Test]
+        public void TestForCryptoScalarmultBase()
+        {
+            Byte[] n = new Byte[TweetNaCl.SCALARMULT_BYTES];
+            Byte[] p = new Byte[TweetNaCl.SCALARMULT_SCALARBYTES];
+            Byte[] q = new Byte[TweetNaCl.SCALARMULT_BYTES];
+
+            TweetNaCl.RandomBytes(n);
+            TweetNaCl.RandomBytes(p);
+
+            q = TweetNaCl.CryptoScalarmult(n, p);
+            Assert.AreEqual(Encoding.UTF7.GetString(q).Length, 32, "wrong size for resulting group element q.");
+        }
+
+        [Test]
         public void TestForGenerateEncryptionKeyPair()
         {
             Byte[] pk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
             Byte[] sk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
 
-            var result = TweetNaCl.CryptoBoxKeypair(pk,sk);
-            Assert.AreNotEqual(result, -1, "key generation failed.");
+            pk = TweetNaCl.CryptoBoxKeypair(sk);
+            Assert.AreEqual(Encoding.UTF7.GetString(pk).Length, 32, "key generation failed.");
 
             String pk64 = Convert.ToBase64String(pk);
             String sk64 = Convert.ToBase64String(sk);
@@ -83,8 +111,8 @@ namespace NaCl.Tests
             Byte[] pk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
             Byte[] sk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
 
-            var result = TweetNaCl.CryptoBoxKeypair(pk, sk);
-            Assert.AreNotEqual(result, -1, "key generation failed.");
+            pk = TweetNaCl.CryptoBoxKeypair(sk);
+            Assert.AreEqual(Encoding.UTF7.GetString(pk).Length, 32, "key generation failed.");
 
             String message = "test";
             Byte[] bMessage = Encoding.UTF8.GetBytes(message);
@@ -101,7 +129,7 @@ namespace NaCl.Tests
             String pubKey = Encoding.ASCII.GetString(pk);
             String secKey = Encoding.ASCII.GetString(sk);
 
-            result = TweetNaCl.CryptoBoxBeforenm(k, pk, sk);
+            var result = TweetNaCl.CryptoBoxBeforenm(k, pk, sk);
             Assert.AreNotEqual(result, -1,"generation of K for encryption failed.");
         }
 
@@ -122,8 +150,8 @@ namespace NaCl.Tests
 
             Array.Copy(bMessage, 0, paddedMessage, TweetNaCl.BOX_ZEROBYTES, bMessage.Length);
 
-            result = TweetNaCl.CryptoBoxKeypair(pk, sk);
-            Assert.AreNotEqual(result, -1, "key pair generation failed.");
+            pk = TweetNaCl.CryptoBoxKeypair(sk);
+            Assert.AreEqual(Encoding.UTF7.GetString(pk).Length, 32, "key generation failed.");
 
             TweetNaCl.RandomBytes(nounce);
             Assert.AreNotEqual(result, -1, "randombytes generation failed.");
@@ -152,8 +180,8 @@ namespace NaCl.Tests
 
             Array.Copy(bMessage, 0, paddedMessage, TweetNaCl.BOX_ZEROBYTES, bMessage.Length);
 
-            TweetNaCl.CryptoBoxKeypair(pk, sk);
-            Assert.AreNotEqual(result, -1, "key pair generation failed.");
+            pk = TweetNaCl.CryptoBoxKeypair(sk);
+            Assert.AreEqual(Encoding.UTF7.GetString(pk).Length, 32, "key generation failed.");
 
             TweetNaCl.RandomBytes(nounce);
             Assert.AreNotEqual(result, -1, "randombytes generation failed.");
@@ -186,8 +214,8 @@ namespace NaCl.Tests
 
             Array.Copy(bMessage, 0, paddedMessage, TweetNaCl.BOX_ZEROBYTES, bMessage.Length);
 
-            TweetNaCl.CryptoBoxKeypair(pk, sk);
-            Assert.AreNotEqual(result, -1, "key pair generation failed.");
+            pk = TweetNaCl.CryptoBoxKeypair(sk);
+            Assert.AreEqual(Encoding.UTF7.GetString(pk).Length, 32, "key generation failed.");
 
             TweetNaCl.RandomBytes(nounce);
             Assert.AreNotEqual(result, -1, "randombytes generation failed.");
@@ -207,8 +235,6 @@ namespace NaCl.Tests
 
             String message = "test";
             Byte[] bMessage = Encoding.UTF8.GetBytes(message);
-            Byte[] pk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
-            Byte[] sk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
             Byte[] paddedMessage = new Byte[TweetNaCl.BOX_ZEROBYTES + bMessage.Length];
             Byte[] encMessage = new Byte[paddedMessage.Length];
             Byte[] decMessage = new Byte[encMessage.Length];
@@ -218,12 +244,12 @@ namespace NaCl.Tests
             var result = -10;
 
             Array.Copy(bMessage, 0, paddedMessage, TweetNaCl.BOX_ZEROBYTES, bMessage.Length);
+            
+            apk = TweetNaCl.CryptoBoxKeypair(ask);
+            Assert.AreEqual(Encoding.UTF7.GetString(apk).Length, 32, "key generation failed.");
 
-            TweetNaCl.CryptoBoxKeypair(apk, ask);
-            Assert.AreNotEqual(result, -1, "key pair A generation failed.");
-
-            TweetNaCl.CryptoBoxKeypair(bpk, bsk);
-            Assert.AreNotEqual(result, -1, "key pair B generation failed.");
+            bpk = TweetNaCl.CryptoBoxKeypair(bsk);
+            Assert.AreEqual(Encoding.UTF7.GetString(bpk).Length, 32, "key generation failed.");
 
             TweetNaCl.RandomBytes(nounce);
             Assert.AreNotEqual(result, -1, "randombytes generation failed.");

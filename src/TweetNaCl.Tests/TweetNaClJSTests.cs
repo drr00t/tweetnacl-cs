@@ -62,10 +62,10 @@ namespace NaCl.Tests
 
             Array.Copy(bMessage, 0, paddedMessage, TweetNaCl.BOX_ZEROBYTES, bMessage.Length);
 
-            TweetNaCl.CryptoBoxKeypair(apk, ask);
+            apk = TweetNaCl.CryptoBoxKeypair(ask);
             Assert.AreNotEqual(result, -1, "key pair A generation failed.");
 
-            TweetNaCl.CryptoBoxKeypair(bpk, bsk);
+            bpk = TweetNaCl.CryptoBoxKeypair(bsk);
             Assert.AreNotEqual(result, -1, "key pair B generation failed.");
 
             TweetNaCl.RandomBytes(nounce);
