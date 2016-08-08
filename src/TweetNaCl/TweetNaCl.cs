@@ -14,7 +14,7 @@ namespace Nacl
 {
     public class TweetNaCl
     {
-        #region Public-key cryptography
+        #region Public-key cryptography - Implementation of curve25519-xsalsa20-poly1305
 
         /// <summary>
         /// crypto_scalarmult_curve25519
@@ -26,6 +26,9 @@ namespace Nacl
         /// </summary>
         public static readonly Int32 SCALARMULT_SCALARBYTES = 32;
         
+        /// <summary>
+        /// crypto_box_beforenm computed shared key size 
+        /// </summary>
         public static readonly Int32 BOX_BEFORENMBYTES = 32;
         public static readonly Int32 BOX_PUBLICKEYBYTES = 32;
         public static readonly Int32 BOX_SECRETKEYBYTES = 32;
@@ -35,7 +38,20 @@ namespace Nacl
 
         public static readonly Int32 SECRETBOX_NONCEBYTES = 24;
         public static readonly Int32 SECRETBOX_KEYBYTES = 32;
+        
+        /// <summary>
+        /// SHA-512 hash bytes
+        /// </summary>
+        public static readonly Int32 HASH_BYTES = 64;
+        
+        public static readonly Int32 SIGN_PUBLICKEYBYTES = 32;
+        public static readonly Int32 SIGN_SECRETKEYBYTES = 64;
+        public static readonly Int32 SIGN_BYTES = 64;
 
+
+        public class InvalidSignatureException : CryptographicException { }
+        public class InvalidCipherTextException : CryptographicException { }
+        public class InvalidEncryptionKeypair : CryptographicException { }
 
         /// <summary>
         /// Scalar multiplication is a curve25519 implementation.
@@ -120,6 +136,362 @@ namespace Nacl
         }
 
         /// <summary>
+        /// The crypto_box_keypair function randomly generates a secret key and a corresponding public key. 
+        /// It guarantees that sk has crypto_box_SECRETKEYBYTES bytes and that pk has crypto_box_PUBLICKEYBYTES bytes. 
+        /// </summary>
+        /// <param name="secretKey">generated secret key</param>
+        /// <returns>generated public key</returns>
+        public static Byte[] CryptoBoxKeypair(Byte[] secretKey)
+        {
+            RandomBytes(secretKey);
+            return CryptoScalarmultBase(secretKey);
+        }
+
+        /// <summary>
+        /// The intermediate data computed by crypto_box_beforenm
+        /// Applications that send several messages to the same receiver can gain speed by splitting CryptoBox into two steps, 
+        /// <b>CryptoBoxBeforenm</b> and CryptoBoxAfternm. 
+        /// </summary>
+        /// <param name="publicKey"></param>
+        /// <param name="secretKey"></param>
+        /// <returns>
+        ///     shared key to be used with afternm
+        /// </returns>
+        public static Byte[] CryptoBoxBeforenm(Byte[] publicKey, Byte[] secretKey)
+        {
+            Byte[] s = CryptoScalarmult(secretKey, publicKey);
+            return CryptoCoreHSalsa20(_0, s, Sigma);
+        }
+
+        /// <summary>
+        /// Applications that send several messages to the same receiver can gain speed by splitting CryptoBox into two steps, 
+        /// CryptoBoxBeforenm and <b>CryptoBoxAfternm</b>. 
+        /// </summary>
+        /// <param name="cipheredMessage"></param>
+        /// <param name="paddedMessage"></param>
+        /// <param name="nonce"></param>
+        /// <param name="k"></param>
+        /// <returns></returns>
+        public static Int32 CryptoBoxAfternm(Byte[] cipheredMessage, Byte[] paddedMessage, Byte[] nonce, Byte[] k)
+        {
+            return CryptoSecretBox(cipheredMessage, paddedMessage, nonce, k);
+        }
+
+        /// <summary>
+        /// Applications that receive several messages from the same 
+        /// sender can gain speed by splitting CryptoBoxOpen into two steps, CryptoBoxBeforenm and <b>CryptoBoxOpenAfternm</b>. 
+        /// </summary>
+        /// <param name="paddedMessage"></param>
+        /// <param name="cipheredMessage"></param>
+        /// <param name="nonce"></param>
+        /// <param name="k"></param>
+        /// <returns></returns>
+        public static Int32 CryptoBoxOpenAfternm(Byte[] paddedMessage, Byte[] cipheredMessage, Byte[] nonce, Byte[] k)
+        {
+            return CryptoSecretBoxOpen(paddedMessage, cipheredMessage, nonce, k);
+        }
+
+        /// <summary>
+        /// The crypto_box function encrypts and authenticates a message m, remember that all 
+        /// messages are 0-padded versions of messages with BOX_ZEROBYTES.
+        /// </summary>
+        /// <param name="cipheredMessage"></param>
+        /// <param name="paddedMessage"></param>
+        /// <param name="nonce"></param>
+        /// <param name="publicKey"></param>
+        /// <param name="secretKey"></param>
+        /// <returns>
+        ///     0 for success or -1 for failure
+        /// </returns>
+        public static Int32 CryptoBox(Byte[] cipheredMessage, Byte[] paddedMessage, Byte[] nonce, Byte[] publicKey, Byte[] secretKey)
+        {
+            Byte[] k = CryptoBoxBeforenm(publicKey, secretKey);
+            return CryptoBoxAfternm(cipheredMessage, paddedMessage, nonce, k);
+        }
+
+        /// <summary>
+        /// The crypto_box_open function verifies and decrypts a ciphertext
+        /// </summary>
+        /// <param name="paddedMessage"></param>
+        /// <param name="cipheredMessage"></param>
+        /// <param name="d"></param>
+        /// <param name="nonce"></param>
+        /// <param name="publicKey"></param>
+        /// <param name="secretKey"></param>
+        /// <returns>
+        ///     0 for success or -1 for failure
+        /// </returns>
+        public static Int32 CryptoBoxOpen(Byte[] paddedMessage, Byte[] cipheredMessage, Byte[] nonce, Byte[] publicKey, Byte[] secretKey)
+        {
+            Byte[] k = CryptoBoxBeforenm(publicKey, secretKey);
+            return CryptoBoxOpenAfternm(paddedMessage, cipheredMessage, nonce, k);
+        }
+
+        /// <summary>
+        /// Randomly generates a secret key and a corresponding public key NaCl-compatible Ed25519 https://ed25519.cr.yp.to/
+        /// </summary>
+        /// <param name="publicKey"></param>
+        /// <param name="secretKey"></param>
+        /// <returns></returns>
+        public static Byte[] CryptoSignKeypair(Byte[] secretKey)
+        {
+            Byte[] publicKey = new Byte[SIGN_PUBLICKEYBYTES];
+            Byte[] d = new Byte[64];
+            Int64[][] /*gf*/ p = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
+
+            RandomBytes(secretKey);
+
+            if (CryptoHash(d, secretKey, 32) != 0)
+            {
+                throw new InvalidSignatureException();
+            }
+
+            d[0] &= 248;
+            d[31] &= 127;
+            d[31] |= 64;
+
+            Scalarbase(p, d, 0);
+            Pack(publicKey, p);
+
+            for (var i = 0; i < 32; ++i)
+            {
+                secretKey[32 + i] = publicKey[i];
+            }
+
+            return publicKey;
+        }
+        
+        /// <summary>
+        /// The crypto_sign function signs a message m using the signer's secret key secretKey.
+        /// </summary>
+        /// <param name="signedMessage"></param>
+        /// <param name="message"></param>
+        /// <param name="n"></param>
+        /// <param name="secretKey"></param>
+        /// <returns></returns>
+        public static Byte[] CryptoSign(Byte[] message, Byte[] secretKey)
+        {
+            Byte[] signedMessage = new Byte[SIGN_BYTES + message.Length];
+
+            Byte[] d = new Byte[64];
+            Byte[] h = new Byte[64];
+            Byte[] r = new Byte[64];
+            Int64[] x = new Int64[64];
+            Int64[][] /*gf*/ p/*[4]*/ = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
+
+            CryptoHash(d, secretKey, 32);
+
+            d[0] &= 248;
+            d[31] &= 127;
+            d[31] |= 64;
+
+            for (var i = 0; i < message.Length; ++i)
+            {
+                signedMessage[64 + i] = message[i];
+            }
+
+            for (var i = 0; i < 32; ++i)
+            {
+                signedMessage[32 + i] = d[32 + i];
+            }
+
+            Byte[] smd = new Byte[signedMessage.Length];
+            Array.Copy(signedMessage, 32, smd, 0, signedMessage.Length - 32);
+            CryptoHash(r, smd, message.Length + 64);
+
+            Reduce(r);
+            Scalarbase(p, r, 0);
+            Pack(signedMessage, p);
+
+            for (int i = 0; i < 32; ++i)
+            {
+                signedMessage[i + 32] = secretKey[i + 32];
+            }
+
+            CryptoHash(h, signedMessage, message.Length + 64);
+            Reduce(h);
+
+            for (var i = 0; i < 64; ++i)
+            {
+                x[i] = 0;
+            }
+
+            for (var i = 0; i < 32; ++i)
+            {
+                x[i] = 0xff & r[i];
+            }
+
+            for (var i = 0; i < 32; ++i)
+            {
+                for (int j = 0; j < 32; ++j)
+                {
+                    x[i + j] += (0xff & h[i]) * (0xff & d[j]);
+                }
+            }
+
+            ModL(signedMessage, 32, x);
+
+            return signedMessage;
+        }
+
+        /// <summary>
+        /// The CryptoSignOpen function verifies the signature
+        /// </summary>
+        /// <param name="message">returned clear message</param>
+        /// <param name="signedMessage">signed message</param>
+        /// <param name="publicKey">public key</param>
+        /// <returns></returns>
+        public static Byte[] CryptoSignOpen(Byte[] signedMessage, Byte[] publicKey)
+        {
+            Byte[] message = new Byte[signedMessage.Length - 64];
+
+            Byte[] t = new Byte[32];
+            Byte[] h = new Byte[64];
+            Int64[][] /*gf*/ p = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
+            Int64[][] /*gf*/ q = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
+            Int32 messageSize = signedMessage.Length;
+
+            Byte[] tsm = new Byte[signedMessage.Length];
+
+            if (signedMessage.Length < 64)
+            {
+                throw new InvalidSignatureException();
+            }
+
+            if (Unpackneg(q, publicKey) != 0)
+            {
+                throw new InvalidSignatureException();
+            }
+
+            for (var i = 0; i < signedMessage.Length; ++i)
+            {
+                tsm[i] = signedMessage[i];
+            }
+
+            for (var i = 0; i < 32; ++i)
+            {
+                tsm[i + 32] = publicKey[i];
+            }
+
+            CryptoHash(h, tsm, signedMessage.Length);
+            Reduce(h);
+            Scalarmult(p, q, h, 0);
+
+            Scalarbase(q, signedMessage, 32);
+            Add(p, q);
+            Pack(t, p);
+
+            if (CryptoVerify32(signedMessage, t) != 0)
+            {
+                for (var i = 0; i < messageSize; ++i)
+                {
+                    tsm[i] = 0;
+                }
+
+                throw new InvalidSignatureException();
+            }
+
+            for (var i = 0; i < signedMessage.Length - 64; ++i)
+            {
+                message[i] = signedMessage[i + 64];
+            }
+
+            return message;
+        }
+
+
+        #endregion
+
+        #region private methods
+
+        #region Curve25519
+
+        private static Byte[] Core(Byte[] pout, Byte[] pin, Byte[] k, Byte[] c, Boolean hsalsa)
+        {
+            UInt32[] w = new UInt32[16];
+            UInt32[] x = new UInt32[16];
+            UInt32[] y = new UInt32[16];
+            UInt32[] t = new UInt32[4];
+
+            Int32 i, j, m;
+
+
+            for (i = 0; i < 4; i++)
+            {
+                x[5 * i] = Ld32(c, 4 * i);
+                x[1 + i] = Ld32(k, 4 * i);
+                x[6 + i] = Ld32(pin, 4 * i);
+                x[11 + i] = Ld32(k, 16 + 4 * i);
+            }
+
+            for (i = 0; i < 16; ++i)
+            {
+                y[i] = x[i];
+            }
+
+            for (i = 0; i < 20; ++i)
+            {
+                for (j = 0; j < 4; ++j)
+                {
+                    for (m = 0; m < 4; ++m)
+                    {
+                        t[m] = x[(5 * j + 4 * m) % 16];
+                    }
+
+                    t[1] ^= L32(t[0] + t[3], 7);
+                    t[2] ^= L32(t[1] + t[0], 9);
+                    t[3] ^= L32(t[2] + t[1], 13);
+                    t[0] ^= L32(t[3] + t[2], 18);
+
+                    for (m = 0; m < 4; ++m)
+                    {
+                        w[4 * j + (j + m) % 4] = t[m];
+                    }
+                }
+
+                for (m = 0; m < 16; ++m)
+                {
+                    x[m] = w[m];
+                }
+            }
+
+            if (hsalsa)
+            {
+                for (i = 0; i < 16; ++i)
+                {
+                    x[i] += y[i];
+                }
+
+                for (i = 0; i < 4; ++i)
+                {
+                    x[5 * i] -= Ld32(c, 4 * i);
+                    x[6 + i] -= Ld32(pin, 4 * i);
+                }
+
+                for (i = 0; i < 4; ++i)
+                {
+                    St32(pout, x[5 * i], 4 * i);
+                    St32(pout, x[6 + i], 16 + 4 * i);
+                }
+            }
+            else
+            {
+                for (i = 0; i < 16; ++i)
+                {
+                    St32(pout, x[i] + y[i], 4 * i);
+                }
+            }
+
+            return pout;
+        }
+
+        private static Byte[] CryptoCoreHSalsa20(Byte[] pin, Byte[] k, Byte[] c)
+        {
+            Byte[] pout = new Byte[BOX_BEFORENMBYTES];
+            return Core(pout, pin, k, c, true);
+        }
+        
+        /// <summary>
         /// The crypto_scalarmult_base function computes the scalar product of a standard group element and an integer n.
         /// </summary>
         /// <param name="n"></param>
@@ -128,7 +500,7 @@ namespace Nacl
         {
             return CryptoScalarmult(n, _9);
         }
-
+        
         private static void Set25519(Int64[] /*gf*/ r, Int64[] /*gf*/ a)
         {
             for (var i = 0; i < 16; ++i)
@@ -326,291 +698,223 @@ namespace Nacl
 
         #endregion
 
+        #region Ed25519
+        
+        private static void Pack(Byte[] r, Int64[][] /*gf*/ p/*[4]*/)
+        {
+            Int64[] /*gf*/ tx = new Int64[GF_LEN], ty = new Int64[GF_LEN], zi = new Int64[GF_LEN];
+
+            Inv25519(zi, 0, p[2], 0);
+            M(tx, 0, p[0], 0, zi, 0);
+            M(ty, 0, p[1], 0, zi, 0);
+
+            Pack25519(r, ty, 0);
+
+            r[31] ^= (Byte)(Par25519(tx) << 7);
+        }
+
+        private static void Add(Int64[][] p, Int64[][] q)
+        {
+            Int64[] a = new Int64[GF_LEN],
+                    b = new Int64[GF_LEN],
+                    c = new Int64[GF_LEN],
+                    d = new Int64[GF_LEN],
+                    t = new Int64[GF_LEN],
+                    e = new Int64[GF_LEN],
+                    f = new Int64[GF_LEN],
+                    g = new Int64[GF_LEN],
+                    h = new Int64[GF_LEN]
+                    ;
+
+            Z(a, p[1], p[0]);
+            Z(t, q[1], q[0]);
+            M(a, 0, a, 0, t, 0);
+            A(b, p[0], p[1]);
+            A(t, q[0], q[1]);
+            M(b, 0, b, 0, t, 0);
+            M(c, 0, p[3], 0, q[3], 0);
+            M(c, 0, c, 0, D2, 0);
+            M(d, 0, p[2], 0, q[2], 0);
+            A(d, d, d);
+            Z(e, b, a);
+            Z(f, d, c);
+            A(g, d, c);
+            A(h, b, a);
+
+            M(p[0], 0, e, 0, f, 0);
+            M(p[1], 0, h, 0, g, 0);
+            M(p[2], 0, g, 0, f, 0);
+            M(p[3], 0, e, 0, h, 0);
+        }
+
+        private static void Cswap(Int64[][] /*gf*/ p/*[4]*/, Int64[][] /*gf*/ q/*[4]*/, Byte b)
+        {
+            for (var i = 0; i < 4; i++)
+                Sel25519(p[i], q[i], b & 0xff);
+        }
+        
+        private static void Scalarmult(Int64[][] /*gf*/ p /*[4]*/ , Int64[][] /*gf*/ q /*[4]*/, Byte[] s, Int32 sOffset)
+        {
+            Set25519(p[0], GF0);
+            Set25519(p[1], GF1);
+            Set25519(p[2], GF1);
+            Set25519(p[3], GF0);
+
+            for (var i = 255; i >= 0; --i)
+            {
+                Byte b = (Byte)(((0xff & s[sOffset + i / 8]) >> (i & 7)) & 1);
+                Cswap(p, q, b);
+                Add(q, p);
+                Add(p, p);
+                Cswap(p, q, b);
+            }
+        }
+
+        private static void Scalarbase(Int64[][] /*gf*/ p/*[4]*/, Byte[] s, Int32 sOffset)
+        {
+            Int64[][] /*gf*/ q = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
+            Set25519(q[0], X);
+            Set25519(q[1], Y);
+            Set25519(q[2], GF1);
+            M(q[3], 0, X, 0, Y, 0);
+            Scalarmult(p, q, s, sOffset);
+        }
+
+
+        #endregion
+
+
+        private static Int32 Vn(Byte[] x, Byte[] y, Int32 n, Int32 xOffset = 0)
+        {
+            Int32 d = 0;
+            for (var i = 0; i < n; ++i) d |= x[i + xOffset] ^ y[i];
+            return (1 & ((d - 1) >> 8)) - 1;
+        }
+
+        private static Int32 CryptoVerify16(Byte[] x, Byte[] y, Int32 xOffset)
+        {
+            return Vn(x, y, 16, xOffset);
+        }
+
+        private static Int32 CryptoVerify32(Byte[] x, Byte[] y)
+        {
+            return Vn(x, y, 32);
+        }
+        
+        private static void ModL(Byte[] r, Int32 rOffset, Int64[] x/*[64]*/)
+        {
+            Int64 carry;
+            Int32 i, j;
+            for (i = 63; i >= 32; --i)
+            {
+                carry = 0;
+                for (j = i - 32; j < i - 12; ++j)
+                {
+                    x[j] += carry - 16 * x[i] * L[j - (i - 32)];
+                    carry = (x[j] + 128) >> 8;
+                    x[j] -= carry << 8;
+                }
+                x[j] += carry;
+                x[i] = 0;
+            }
+            carry = 0;
+
+            for (j = 0; j < 32; ++j)
+            {
+                x[j] += carry - (x[31] >> 4) * L[j];
+                carry = x[j] >> 8;
+                x[j] &= 255;
+            }
+
+            for (j = 0; j < 32; ++j)
+            {
+                x[j] -= carry * L[j];
+            }
+
+            for (i = 0; i < 32; ++i)
+            {
+                x[i + 1] += x[i] >> 8;
+                r[rOffset + i] = (Byte)(x[i] & 255);
+            }
+        }
+
+        private static void Reduce(Byte[] r)
+        {
+            Int64[] x = new Int64[64];
+            for (int i = 0; i < 64; i++)
+            {
+                x[i] = 0xff & r[i];
+            }
+
+            for (int i = 0; i < 64; ++i)
+            {
+                r[i] = 0;
+            }
+
+            ModL(r, 0, x);
+        }
+
+        private static Int32 Unpackneg(Int64[][] /*gf*/ r/*[4]*/, Byte[] p/*[32]*/)
+        {
+            Int64[] /*gf*/ t = new Int64[GF_LEN],
+                chk = new Int64[GF_LEN],
+                num = new Int64[GF_LEN],
+                den = new Int64[GF_LEN],
+                den2 = new Int64[GF_LEN],
+                den4 = new Int64[GF_LEN],
+                den6 = new Int64[GF_LEN];
+
+            Set25519(r[2], GF1);
+            Unpack25519(r[1], p);
+            S(num, r[1]);
+            M(den, 0, num, 0, D, 0);
+            Z(num, num, r[2]);
+            A(den, r[2], den);
+
+            S(den2, den);
+            S(den4, den2);
+            M(den6, 0, den4, 0, den2, 0);
+            M(t, 0, den6, 0, num, 0);
+            M(t, 0, t, 0, den, 0);
+
+            Pow2523(t, t);
+            M(t, 0, t, 0, num, 0);
+            M(t, 0, t, 0, den, 0);
+            M(t, 0, t, 0, den, 0);
+            M(r[0], 0, t, 0, den, 0);
+
+            S(chk, r[0]);
+            M(chk, 0, chk, 0, den, 0);
+            if (Neq25519(chk, num) != 0)
+            {
+                M(r[0], 0, r[0], 0, I, 0);
+            }
+
+            S(chk, r[0]);
+            M(chk, 0, chk, 0, den, 0);
+            if (Neq25519(chk, num) != 0)
+            {
+                return -1;
+            }
+
+            if (Par25519(r[0]) == ((0xff & p[31]) >> 7))
+            {
+                Z(r[0], GF0, r[0]);
+            }
+
+            M(r[3], 0, r[0], 0, r[1], 0);
+
+            return 0;
+        }
+
+        #endregion
+
         #region Secret-key cryptography
 
         #endregion
 
         #region Low-level functions:
 
-        #endregion
-
-
-
-        /// <summary>
-        /// SHA-512 hash bytes
-        /// </summary>
-        public static readonly Int32 HASH_BYTES = 64;
-
-
-        public static readonly Int32 SIGN_PUBLICKEYBYTES = 32;
-        public static readonly Int32 SIGN_SECRETKEYBYTES = 64;
-        public static readonly Int32 SIGN_BYTES = 64;
-
-        public class InvalidSignatureException : CryptographicException { }
-        public class InvalidCipherTextException : CryptographicException { }
-        public class InvalidEncryptionKeypair : CryptographicException { }
-
-        /// <summary>
-        /// The crypto_box_keypair function randomly generates a secret key and a corresponding public key. 
-        /// It guarantees that sk has crypto_box_SECRETKEYBYTES bytes and that pk has crypto_box_PUBLICKEYBYTES bytes. 
-        /// </summary>
-        /// <param name="secretKey">generated secret key</param>
-        /// <returns>generated public key</returns>
-        public static Byte[] CryptoBoxKeypair(Byte[] secretKey)
-        {
-            RandomBytes(secretKey);
-            return CryptoScalarmultBase(secretKey);
-        }
-
-        /// <summary>
-        /// Applications that send several messages to the same receiver can gain speed by splitting CryptoBox into two steps, 
-        /// <b>CryptoBoxBeforenm</b> and CryptoBoxAfternm. 
-        /// </summary>
-        /// <param name="k"></param>
-        /// <param name="publicKey"></param>
-        /// <param name="secretKey"></param>
-        /// <returns>
-        ///     0 - for success or -1 - for failure
-        /// </returns>
-        public static Int32 CryptoBoxBeforenm(Byte[] k, Byte[] publicKey, Byte[] secretKey)
-        {
-            Byte[] s = CryptoScalarmult(secretKey, publicKey);
-            return CryptoCoreHSalsa20(k, _0, s, Sigma);
-        }
-
-        /// <summary>
-        /// Applications that send several messages to the same receiver can gain speed by splitting CryptoBox into two steps, 
-        /// CryptoBoxBeforenm and <b>CryptoBoxAfternm</b>. 
-        /// </summary>
-        /// <param name="cipheredMessage"></param>
-        /// <param name="paddedMessage"></param>
-        /// <param name="nounce"></param>
-        /// <param name="k"></param>
-        /// <returns></returns>
-        public static Int32 CryptoBoxAfternm(Byte[] cipheredMessage, Byte[] paddedMessage, Byte[] nounce, Byte[] k)
-        {
-            return CryptoSecretBox(cipheredMessage, paddedMessage, nounce, k);
-        }
-
-        /// <summary>
-        /// Applications that receive several messages from the same 
-        /// sender can gain speed by splitting CryptoBoxOpen into two steps, CryptoBoxBeforenm and <b>CryptoBoxOpenAfternm</b>. 
-        /// </summary>
-        /// <param name="paddedMessage"></param>
-        /// <param name="cipheredMessage"></param>
-        /// <param name="nonce"></param>
-        /// <param name="k"></param>
-        /// <returns></returns>
-        public static Int32 CryptoBoxOpenAfternm(Byte[] paddedMessage, Byte[] cipheredMessage, Byte[] nonce, Byte[] k)
-        {
-            return CryptoSecretBoxOpen(paddedMessage, cipheredMessage, nonce, k);
-        }
-
-        /// <summary>
-        /// The crypto_box function encrypts and authenticates a message m, remember that all 
-        /// messages are 0-padded versions of messages with BOX_ZEROBYTES.
-        /// </summary>
-        /// <param name="cipheredMessage"></param>
-        /// <param name="paddedMessage"></param>
-        /// <param name="nonce"></param>
-        /// <param name="publicKey"></param>
-        /// <param name="secretKey"></param>
-        /// <returns>
-        ///     0 for success or -1 for failure
-        /// </returns>
-        public static Int32 CryptoBox(Byte[] cipheredMessage, Byte[] paddedMessage, Byte[] nonce, Byte[] publicKey, Byte[] secretKey)
-        {
-            Byte[] k = new Byte[BOX_BEFORENMBYTES];
-            CryptoBoxBeforenm(k, publicKey, secretKey);
-            return CryptoBoxAfternm(cipheredMessage, paddedMessage, nonce, k);
-        }
-
-        /// <summary>
-        /// The crypto_box_open function verifies and decrypts a ciphertext
-        /// </summary>
-        /// <param name="paddedMessage"></param>
-        /// <param name="cipheredMessage"></param>
-        /// <param name="d"></param>
-        /// <param name="nonce"></param>
-        /// <param name="publicKey"></param>
-        /// <param name="secretKey"></param>
-        /// <returns>
-        ///     0 for success or -1 for failure
-        /// </returns>
-        public static Int32 CryptoBoxOpen(Byte[] paddedMessage, Byte[] cipheredMessage, Byte[] nonce, Byte[] publicKey, Byte[] secretKey)
-        {
-            Byte[] k = new Byte[BOX_BEFORENMBYTES];
-            CryptoBoxBeforenm(k, publicKey, secretKey);
-            return CryptoBoxOpenAfternm(paddedMessage, cipheredMessage, nonce, k);
-        }
-
-        /// <summary>
-        /// Randomly generates a secret key and a corresponding public key. 
-        /// </summary>
-        /// <param name="publicKey"></param>
-        /// <param name="secretKey"></param>
-        /// <returns></returns>
-        public static Int32 CryptoSignKeypair(Byte[] publicKey, Byte[] secretKey)
-        {
-            Byte[] d = new Byte[64];
-            Int64[][] /*gf*/ p = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
-
-            RandomBytes(secretKey);
-
-            if (CryptoHash(d, secretKey, 32) != 0)
-            {
-                return -1;
-            }
-
-            d[0] &= 248;
-            d[31] &= 127;
-            d[31] |= 64;
-
-            Scalarbase(p, d, 0);
-            Pack(publicKey, p);
-
-            for (var i = 0; i < 32; ++i)
-            {
-                secretKey[32 + i] = publicKey[i];
-            }
-
-            return 0;
-        }
-
-        /// <summary>
-        /// The crypto_sign function signs a message m using the signer's secret key secretKey.
-        /// </summary>
-        /// <param name="signedMessage"></param>
-        /// <param name="message"></param>
-        /// <param name="n"></param>
-        /// <param name="secretKey"></param>
-        /// <returns></returns>
-        public static Int32 CryptoSign(Byte[] signedMessage, Byte[] message, Byte[] secretKey)
-        {
-            Byte[] d = new Byte[64];
-            Byte[] h = new Byte[64];
-            Byte[] r = new Byte[64];
-            Int64[] x = new Int64[64];
-            Int64[][] /*gf*/ p/*[4]*/ = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
-
-            CryptoHash(d, secretKey, 32);
-
-            d[0] &= 248;
-            d[31] &= 127;
-            d[31] |= 64;
-
-            for (var i = 0; i < message.Length; ++i)
-            {
-                signedMessage[64 + i] = message[i];
-            }
-
-            for (var i = 0; i < 32; ++i)
-            {
-                signedMessage[32 + i] = d[32 + i];
-            }
-
-            Byte[] smd = new Byte[signedMessage.Length];
-            Array.Copy(signedMessage, 32, smd, 0, signedMessage.Length - 32);
-            CryptoHash(r, smd, message.Length + 64);
-
-            Reduce(r);
-            Scalarbase(p, r, 0);
-            Pack(signedMessage, p);
-
-            for (int i = 0; i < 32; ++i)
-            {
-                signedMessage[i + 32] = secretKey[i + 32];
-            }
-
-            CryptoHash(h, signedMessage, message.Length + 64);
-            Reduce(h);
-
-            for (var i = 0; i < 64; ++i)
-            {
-                x[i] = 0;
-            }
-
-            for (var i = 0; i < 32; ++i)
-            {
-                x[i] = 0xff & r[i];
-            }
-
-            for (var i = 0; i < 32; ++i)
-            {
-                for (int j = 0; j < 32; ++j)
-                {
-                    x[i + j] += (0xff & h[i]) * (0xff & d[j]);
-                }
-            }
-
-            ModL(signedMessage, 32, x);
-
-            return 0;
-        }
-
-        /// <summary>
-        /// The CryptoSignOpen function verifies the signature
-        /// </summary>
-        /// <param name="message">returned clear message</param>
-        /// <param name="signedMessage">signed message</param>
-        /// <param name="publicKey">public key</param>
-        /// <returns></returns>
-        public static Int32 CryptoSignOpen(Byte[] message, Byte[] signedMessage, Byte[] publicKey)
-        {
-            Byte[] t = new Byte[32];
-            Byte[] h = new Byte[64];
-            Int64[][] /*gf*/ p = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
-            Int64[][] /*gf*/ q = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
-            Int32 messageSize = signedMessage.Length;
-
-            Byte[] tsm = new Byte[signedMessage.Length];
-
-            if (signedMessage.Length < 64)
-            {
-                return -1;
-            }
-
-            if (Unpackneg(q, publicKey) != 0)
-            {
-                return -1;
-            }
-
-            for (var i = 0; i < signedMessage.Length; ++i)
-            {
-                tsm[i] = signedMessage[i];
-            }
-
-            for (var i = 0; i < 32; ++i)
-            {
-                tsm[i + 32] = publicKey[i];
-            }
-
-            CryptoHash(h, tsm, signedMessage.Length);
-            Reduce(h);
-            Scalarmult(p, q, h, 0);
-
-            Scalarbase(q, signedMessage, 32);
-            Add(p, q);
-            Pack(t, p);
-
-            if (CryptoVerify32(signedMessage, t) != 0)
-            {
-                for (var i = 0; i < messageSize; ++i)
-                {
-                    tsm[i] = 0;
-                }
-
-                return -1;
-            }
-
-            for (var i = 0; i < signedMessage.Length - 64; ++i)
-            {
-                message[i] = signedMessage[i + 64];
-            }
-
-            return 0;
-        }
-        
         /// <summary>
         /// crypto_hash is currently an implementation of SHA-512.
         /// </summary>
@@ -675,6 +979,73 @@ namespace Nacl
             return 0;
         }
 
+
+        private static Int32 CryptoHashBlocks(Byte[] x, Byte[] m, Int32 n)
+        {
+            UInt64[] z = new UInt64[8];
+            UInt64[] b = new UInt64[8];
+            UInt64[] a = new UInt64[8];
+            UInt64[] w = new UInt64[16];
+            UInt64 t = 0;
+
+            for (var i = 0; i < 8; i++)
+            {
+                z[i] = a[i] = Dl64(x, 8 * i);
+            }
+
+            while (n >= 128)
+            {
+                for (var i = 0; i < 16; i++)
+                {
+                    w[i] = Dl64(m, 8 * i);
+                }
+
+                for (var i = 0; i < 80; i++)
+                {
+                    for (var j = 0; j < 8; j++)
+                    {
+                        b[j] = a[j];
+                    }
+
+                    t = a[7] + Sigma1(a[4]) + Ch(a[4], a[5], a[6]) + K[i] + w[i % 16];
+                    b[7] = t + Sigma0(a[0]) + Maj(a[0], a[1], a[2]);
+                    b[3] += t;
+                    for (var j = 0; j < 8; j++)
+                    {
+                        a[(j + 1) % 8] = b[j];
+                    }
+
+                    if (i % 16 == 15)
+                        for (var j = 0; j < 16; j++)
+                        {
+                            w[j] += w[(j + 9) % 16] + sigma0(w[(j + 1) % 16]) + sigma1(w[(j + 14) % 16]);
+                        }
+                }
+
+                for (var i = 0; i < 8; i++)
+                {
+                    a[i] += z[i]; z[i] = a[i];
+                }
+
+                for (var i = 0; i < m.Length; i++)
+                {
+                    m[i] += 128;
+                }
+
+                n -= 128;
+            }
+
+            for (var i = 0; i < 8; i++)
+            {
+                Ts64(x, z[i], 8 * i);
+            }
+
+            return n;
+        }
+
+
+        #endregion
+        
         /// <summary>
         /// crypto_onetimeauth is crypto_onetimeauth_poly1305, an authenticator specified in "Cryptography in NaCl", Section 9. 
         /// This authenticator is proven to meet the standard notion of unforgeability after a single message. 
@@ -953,7 +1324,7 @@ namespace Nacl
           0x5b,0xe0,0xcd,0x19,0x13,0x7e,0x21,0x79
         };
 
-        private static Byte[] Sigma = Encoding.UTF8.GetBytes("expand 32-byte k");
+        private static Byte[] Sigma = Encoding.ASCII.GetBytes("expand 32-byte k");
 
         private static Int32[] Minusp = new Int32[17] { 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252 };
 
@@ -998,108 +1369,9 @@ namespace Nacl
             }
         }
 
-        private static Int32 Vn(Byte[] x, Byte[] y, Int32 n, Int32 xOffset = 0)
+        private static Byte[] CryptoCoreSalsa20(Byte[] pout, Byte[] pin, Byte[] k, Byte[] c)
         {
-            Int32 d = 0;
-            for (var i = 0; i < n; ++i) d |= x[i + xOffset] ^ y[i];
-            return (1 & ((d - 1) >> 8)) - 1;
-        }
-
-        private static Int32 CryptoVerify16(Byte[] x, Byte[] y, Int32 xOffset)
-        {
-            return Vn(x, y, 16, xOffset);
-        }
-
-        private static Int32 CryptoVerify32(Byte[] x, Byte[] y)
-        {
-            return Vn(x, y, 32);
-        }
-
-        private static void Core(Byte[] pout, Byte[] pin, Byte[] k, Byte[] c, Boolean hsalsa)
-        {
-            UInt32[] w = new UInt32[16];
-            UInt32[] x = new UInt32[16];
-            UInt32[] y = new UInt32[16];
-            UInt32[] t = new UInt32[4];
-            Int32 i, j, m;
-
-            for (i = 0; i < 4; i++)
-            {
-                x[5 * i] = Ld32(c, 4 * i);
-                x[1 + i] = Ld32(k, 4 * i);
-                x[6 + i] = Ld32(pin, 4 * i);
-                x[11 + i] = Ld32(k, 16 + 4 * i);
-            }
-
-            for (i = 0; i < 16; ++i)
-            {
-                y[i] = x[i];
-            }
-
-            for (i = 0; i < 20; ++i)
-            {
-                for (j = 0; j < 4; ++j)
-                {
-                    for (m = 0; m < 4; ++m)
-                    {
-                        t[m] = x[(5 * j + 4 * m) % 16];
-                    }
-
-                    t[1] ^= L32(t[0] + t[3], 7);
-                    t[2] ^= L32(t[1] + t[0], 9);
-                    t[3] ^= L32(t[2] + t[1], 13);
-                    t[0] ^= L32(t[3] + t[2], 18);
-
-                    for (m = 0; m < 4; ++m)
-                    {
-                        w[4 * j + (j + m) % 4] = t[m];
-                    }
-                }
-
-                for (m = 0; m < 16; ++m)
-                {
-                    x[m] = w[m];
-                }
-            }
-
-            if (hsalsa)
-            {
-                for (i = 0; i < 16; ++i)
-                {
-                    x[i] += y[i];
-                }
-
-                for (i = 0; i < 4; ++i)
-                {
-                    x[5 * i] -= Ld32(c, 4 * i);
-                    x[6 + i] -= Ld32(pin, 4 * i);
-                }
-
-                for (i = 0; i < 4; ++i)
-                {
-                    St32(pout, x[5 * i], 4 * i);
-                    St32(pout, x[6 + i], 16 + 4 * i);
-                }
-            }
-            else
-            {
-                for (i = 0; i < 16; ++i)
-                {
-                    St32(pout, x[i] + y[i], 4 * i);
-                }
-            }
-        }
-
-        private static Int32 CryptoCoreSalsa20(Byte[] pout, Byte[] pin, Byte[] k, Byte[] c)
-        {
-            Core(pout, pin, k, c, false);
-            return 0;
-        }
-
-        private static Int32 CryptoCoreHSalsa20(Byte[] pout, Byte[] pin, Byte[] k, Byte[] c)
-        {
-            Core(pout, pin, k, c, true);
-            return 0;
+            return Core(pout, pin, k, c, false);
         }
 
         private static Int32 CryptoStreamSalsa20Xor(Byte[] c, Byte[] m, Int64 b, Byte[] n, Int32 nOffset, Byte[] k)
@@ -1131,6 +1403,7 @@ namespace Nacl
             while (b >= 64)
             {
                 CryptoCoreSalsa20(x, z, k, Sigma);
+
                 for (i = 0; i < 64; ++i)
                 {
                     c[cOffset + i] = (Byte)((m != null ? m[mOffset + i] : 0) ^ x[i]);
@@ -1172,18 +1445,13 @@ namespace Nacl
 
         private static Int32 CryptoStream(Byte[] c, Int64 d, Byte[] n, Byte[] k)
         {
-            Byte[] s = new Byte[32];
-
-            CryptoCoreHSalsa20(s, n, k, Sigma);
+            Byte[] s = CryptoCoreHSalsa20(n, k, Sigma);
             return CryptoStreamSalsa20(c, d, n, 16, s);
         }
 
         private static Int32 CryptoStreamXor(Byte[] c, Byte[] m, Int64 d, Byte[] n, Byte[] k)
         {
-            Byte[] s = new Byte[32];
-
-            CryptoCoreHSalsa20(s, n, k, Sigma);
-
+            Byte[] s = CryptoCoreHSalsa20(n, k, Sigma);
             return CryptoStreamSalsa20Xor(c, m, d, n, 16, s);
 
         }
@@ -1199,254 +1467,6 @@ namespace Nacl
             }
         }
 
-        private static Int32 CryptoHashBlocks(Byte[] x, Byte[] m, Int32 n)
-        {
-            UInt64[] z = new UInt64[8];
-            UInt64[] b = new UInt64[8];
-            UInt64[] a = new UInt64[8];
-            UInt64[] w = new UInt64[16];
-            UInt64 t = 0;
-
-            for (var i = 0; i < 8; i++)
-            {
-                z[i] = a[i] = Dl64(x, 8 * i);
-            }
-
-            while (n >= 128)
-            {
-                for (var i = 0; i < 16; i++)
-                {
-                    w[i] = Dl64(m, 8 * i);
-                }
-
-                for (var i = 0; i < 80; i++)
-                {
-                    for (var j = 0; j < 8; j++)
-                    {
-                        b[j] = a[j];
-                    }
-
-                    t = a[7] + Sigma1(a[4]) + Ch(a[4], a[5], a[6]) + K[i] + w[i % 16];
-                    b[7] = t + Sigma0(a[0]) + Maj(a[0], a[1], a[2]);
-                    b[3] += t;
-                    for (var j = 0; j < 8; j++)
-                    {
-                        a[(j + 1) % 8] = b[j];
-                    }
-
-                    if (i % 16 == 15)
-                        for (var j = 0; j < 16; j++)
-                        {
-                            w[j] += w[(j + 9) % 16] + sigma0(w[(j + 1) % 16]) + sigma1(w[(j + 14) % 16]);
-                        }
-                }
-
-                for (var i = 0; i < 8; i++)
-                {
-                    a[i] += z[i]; z[i] = a[i];
-                }
-
-                for (var i = 0; i < m.Length; i++)
-                {
-                    m[i] += 128;
-                }
-
-                n -= 128;
-            }
-
-            for (var i = 0; i < 8; i++)
-            {
-                Ts64(x, z[i], 8 * i);
-            }
-
-            return n;
-        }
-
-        private static void Add(Int64[][] p, Int64[][] q)
-        {
-            Int64[] a = new Int64[GF_LEN],
-                    b = new Int64[GF_LEN],
-                    c = new Int64[GF_LEN],
-                    d = new Int64[GF_LEN],
-                    t = new Int64[GF_LEN],
-                    e = new Int64[GF_LEN],
-                    f = new Int64[GF_LEN],
-                    g = new Int64[GF_LEN],
-                    h = new Int64[GF_LEN]
-                    ;
-
-            Z(a, p[1], p[0]);
-            Z(t, q[1], q[0]);
-            M(a, 0, a, 0, t, 0);
-            A(b, p[0], p[1]);
-            A(t, q[0], q[1]);
-            M(b, 0, b, 0, t, 0);
-            M(c, 0, p[3], 0, q[3], 0);
-            M(c, 0, c, 0, D2, 0);
-            M(d, 0, p[2], 0, q[2], 0);
-            A(d, d, d);
-            Z(e, b, a);
-            Z(f, d, c);
-            A(g, d, c);
-            A(h, b, a);
-
-            M(p[0], 0, e, 0, f, 0);
-            M(p[1], 0, h, 0, g, 0);
-            M(p[2], 0, g, 0, f, 0);
-            M(p[3], 0, e, 0, h, 0);
-        }
-
-        private static void Cswap(Int64[][] /*gf*/ p/*[4]*/, Int64[][] /*gf*/ q/*[4]*/, Byte b)
-        {
-            for (var i = 0; i < 4; i++)
-                Sel25519(p[i], q[i], b & 0xff);
-        }
-
-        private static void Pack(Byte[] r, Int64[][] /*gf*/ p/*[4]*/)
-        {
-            Int64[] /*gf*/ tx = new Int64[GF_LEN], ty = new Int64[GF_LEN], zi = new Int64[GF_LEN];
-
-            Inv25519(zi, 0, p[2], 0);
-            M(tx, 0, p[0], 0, zi, 0);
-            M(ty, 0, p[1], 0, zi, 0);
-
-            Pack25519(r, ty, 0);
-
-            r[31] ^= (Byte)(Par25519(tx) << 7);
-        }
-
-        private static void Scalarmult(Int64[][] /*gf*/ p /*[4]*/ , Int64[][] /*gf*/ q /*[4]*/, Byte[] s, Int32 sOffset)
-        {
-            Set25519(p[0], GF0);
-            Set25519(p[1], GF1);
-            Set25519(p[2], GF1);
-            Set25519(p[3], GF0);
-
-            for (var i = 255; i >= 0; --i)
-            {
-                Byte b = (Byte)(((0xff & s[sOffset + i / 8]) >> (i & 7)) & 1);
-                Cswap(p, q, b);
-                Add(q, p);
-                Add(p, p);
-                Cswap(p, q, b);
-            }
-        }
-
-        private static void Scalarbase(Int64[][] /*gf*/ p/*[4]*/, Byte[] s, Int32 sOffset)
-        {
-            Int64[][] /*gf*/ q = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
-            Set25519(q[0], X);
-            Set25519(q[1], Y);
-            Set25519(q[2], GF1);
-            M(q[3], 0, X, 0, Y, 0);
-            Scalarmult(p, q, s, sOffset);
-        }
-
-        private static void ModL(Byte[] r, Int32 rOffset, Int64[] x/*[64]*/)
-        {
-            Int64 carry;
-            Int32 i, j;
-            for (i = 63; i >= 32; --i)
-            {
-                carry = 0;
-                for (j = i - 32; j < i - 12; ++j)
-                {
-                    x[j] += carry - 16 * x[i] * L[j - (i - 32)];
-                    carry = (x[j] + 128) >> 8;
-                    x[j] -= carry << 8;
-                }
-                x[j] += carry;
-                x[i] = 0;
-            }
-            carry = 0;
-
-            for (j = 0; j < 32; ++j)
-            {
-                x[j] += carry - (x[31] >> 4) * L[j];
-                carry = x[j] >> 8;
-                x[j] &= 255;
-            }
-
-            for (j = 0; j < 32; ++j)
-            {
-                x[j] -= carry * L[j];
-            }
-
-            for (i = 0; i < 32; ++i)
-            {
-                x[i + 1] += x[i] >> 8;
-                r[rOffset + i] = (Byte)(x[i] & 255);
-            }
-        }
-
-        private static void Reduce(Byte[] r)
-        {
-            Int64[] x = new Int64[64];
-            for (int i = 0; i < 64; i++)
-            {
-                x[i] = 0xff & r[i];
-            }
-
-            for (int i = 0; i < 64; ++i)
-            {
-                r[i] = 0;
-            }
-
-            ModL(r, 0, x);
-        }
-
-        private static Int32 Unpackneg(Int64[][] /*gf*/ r/*[4]*/, Byte[] p/*[32]*/)
-        {
-            Int64[] /*gf*/ t = new Int64[GF_LEN],
-                chk = new Int64[GF_LEN],
-                num = new Int64[GF_LEN],
-                den = new Int64[GF_LEN],
-                den2 = new Int64[GF_LEN],
-                den4 = new Int64[GF_LEN],
-                den6 = new Int64[GF_LEN];
-
-            Set25519(r[2], GF1);
-            Unpack25519(r[1], p);
-            S(num, r[1]);
-            M(den, 0, num, 0, D, 0);
-            Z(num, num, r[2]);
-            A(den, r[2], den);
-
-            S(den2, den);
-            S(den4, den2);
-            M(den6, 0, den4, 0, den2, 0);
-            M(t, 0, den6, 0, num, 0);
-            M(t, 0, t, 0, den, 0);
-
-            Pow2523(t, t);
-            M(t, 0, t, 0, num, 0);
-            M(t, 0, t, 0, den, 0);
-            M(t, 0, t, 0, den, 0);
-            M(r[0], 0, t, 0, den, 0);
-
-            S(chk, r[0]);
-            M(chk, 0, chk, 0, den, 0);
-            if (Neq25519(chk, num) != 0)
-            {
-                M(r[0], 0, r[0], 0, I, 0);
-            }
-
-            S(chk, r[0]);
-            M(chk, 0, chk, 0, den, 0);
-            if (Neq25519(chk, num) != 0)
-            {
-                return -1;
-            }
-
-            if (Par25519(r[0]) == ((0xff & p[31]) >> 7))
-            {
-                Z(r[0], GF0, r[0]);
-            }
-
-            M(r[3], 0, r[0], 0, r[1], 0);
-
-            return 0;
-        }
 
     }
 }
