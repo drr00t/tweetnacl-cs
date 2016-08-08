@@ -172,9 +172,9 @@ namespace Nacl
         /// <param name="nonce"></param>
         /// <param name="k"></param>
         /// <returns></returns>
-        public static Int32 CryptoBoxAfternm(Byte[] cipheredMessage, Byte[] paddedMessage, Byte[] nonce, Byte[] k)
+        public static Byte[] CryptoBoxAfternm(Byte[] message, Byte[] nonce, Byte[] k)
         {
-            return CryptoSecretBox(cipheredMessage, paddedMessage, nonce, k);
+            return CryptoSecretBox(message, nonce, k);
         }
 
         /// <summary>
@@ -186,9 +186,9 @@ namespace Nacl
         /// <param name="nonce"></param>
         /// <param name="k"></param>
         /// <returns></returns>
-        public static Int32 CryptoBoxOpenAfternm(Byte[] paddedMessage, Byte[] cipheredMessage, Byte[] nonce, Byte[] k)
+        public static Byte[] CryptoBoxOpenAfternm(Byte[] cipheredMessage, Byte[] nonce, Byte[] k)
         {
-            return CryptoSecretBoxOpen(paddedMessage, cipheredMessage, nonce, k);
+            return CryptoSecretBoxOpen(cipheredMessage, nonce, k);
         }
 
         /// <summary>
@@ -203,10 +203,10 @@ namespace Nacl
         /// <returns>
         ///     0 for success or -1 for failure
         /// </returns>
-        public static Int32 CryptoBox(Byte[] cipheredMessage, Byte[] paddedMessage, Byte[] nonce, Byte[] publicKey, Byte[] secretKey)
+        public static Byte[] CryptoBox(Byte[] message, Byte[] nonce, Byte[] publicKey, Byte[] secretKey)
         {
             Byte[] k = CryptoBoxBeforenm(publicKey, secretKey);
-            return CryptoBoxAfternm(cipheredMessage, paddedMessage, nonce, k);
+            return CryptoBoxAfternm(message, nonce, k);
         }
 
         /// <summary>
@@ -221,10 +221,10 @@ namespace Nacl
         /// <returns>
         ///     0 for success or -1 for failure
         /// </returns>
-        public static Int32 CryptoBoxOpen(Byte[] paddedMessage, Byte[] cipheredMessage, Byte[] nonce, Byte[] publicKey, Byte[] secretKey)
+        public static Byte[] CryptoBoxOpen(Byte[] cipheredMessage, Byte[] nonce, Byte[] publicKey, Byte[] secretKey)
         {
             Byte[] k = CryptoBoxBeforenm(publicKey, secretKey);
-            return CryptoBoxOpenAfternm(paddedMessage, cipheredMessage, nonce, k);
+            return CryptoBoxOpenAfternm(cipheredMessage, nonce, k);
         }
 
         /// <summary>
@@ -1172,25 +1172,26 @@ namespace Nacl
         /// The crypto_secretbox function encrypts and authenticates a message
         /// </summary>
         /// <param name="cipheredMessage"></param>
-        /// <param name="paddedMessage"></param>
+        /// <param name="message"></param>
         /// <param name="nonce"></param>
         /// <param name="k"></param>
         /// <returns></returns>
-        public static Int32 CryptoSecretBox(Byte[] cipheredMessage, Byte[] paddedMessage, Byte[] nonce, Byte[] k)
+        public static Byte[] CryptoSecretBox(Byte[] message, Byte[] nonce, Byte[] k)
         {
-            if (paddedMessage.Length < 32)
-            {
-                return -1;
-            }
+            Byte[] cipheredMessage = new Byte[message.Length + TweetNaCl.BOX_ZEROBYTES];
+            Byte[] paddedMessage = new Byte[message.Length + TweetNaCl.BOX_ZEROBYTES];
+            Byte[] cMessage = new Byte[message.Length];
+
+            Array.Copy(message, 0, paddedMessage, TweetNaCl.BOX_ZEROBYTES, message.Length);
 
             if (CryptoStreamXor(cipheredMessage, paddedMessage, paddedMessage.Length, nonce, k) != 0)
             {
-                return -1;
+                throw new InvalidCipherTextException();
             }
 
-            if(CryptoOnetimeAuth(cipheredMessage, 16, cipheredMessage, 32, paddedMessage.Length - 32, cipheredMessage) != 0)
+            if (CryptoOnetimeAuth(cipheredMessage, 16, cipheredMessage, 32, paddedMessage.Length - 32, cipheredMessage) != 0)
             {
-                return -1;
+                throw new InvalidCipherTextException();
             }
 
             for (var i = 0; i < 16; ++i)
@@ -1198,7 +1199,7 @@ namespace Nacl
                 cipheredMessage[i] = 0;
             }
 
-            return 0;
+            return cipheredMessage;
         }
 
         /// <summary>
@@ -1209,33 +1210,37 @@ namespace Nacl
         /// <param name="nonce"></param>
         /// <param name="k"></param>
         /// <returns></returns>
-        public static Int32 CryptoSecretBoxOpen(Byte[] paddedMessage, Byte[] cipheredMessage, Byte[] nonce, Byte[] k)
+        public static Byte[] CryptoSecretBoxOpen(Byte[] cipheredMessage, Byte[] nonce, Byte[] k)
         {
             Byte[] x = new Byte[32];
+            Byte[] decMessage = new Byte[cipheredMessage.Length];
+            Byte[] message = new Byte[cipheredMessage.Length - TweetNaCl.BOX_ZEROBYTES];
 
             if (cipheredMessage.Length < 32)
             {
-                return -1;
+                throw new InvalidCipherTextException();
             }
 
             if(CryptoStream(x, 32, nonce, k) != 0)
             {
-                return -1;
+                throw new InvalidCipherTextException();
             }
 
             if (CryptoOnetimeauthVerify(cipheredMessage, 16, cipheredMessage, 32, cipheredMessage.Length - 32, x) != 0)
             {
-                return -1;
+                throw new InvalidCipherTextException();
             }
 
-            CryptoStreamXor(paddedMessage, cipheredMessage, cipheredMessage.Length, nonce, k);
+            CryptoStreamXor(decMessage, cipheredMessage, cipheredMessage.Length, nonce, k);
 
-            for (var i = 0; i < 32; ++i)
+            for (var i = 0; i > 31; ++i)
             {
-                paddedMessage[i] = 0;
+                message[i] = 0;
             }
 
-            return 0;
+            Array.Copy(decMessage, 32, message, 0, message.Length);
+
+            return message;
         }
 
         /// <summary>
