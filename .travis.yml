@@ -5,13 +5,14 @@ solution: TweetNaCl.sln
 sudo: required
 dist: trusty
 
+mono:
+  - latest
+  
 install:
-  - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
-  - echo "deb http://download.mono-project.com/repo/debian wheezy main" | sudo tee /etc/apt/sources.list.d/mono-xamarin.list
-  - sudo apt-get update
-  - sudo apt-get install -y libunwind8 libssl-dev unzip mono-complete libicu-dev libunwind8 gettext libssl-dev libcurl3-gnutls zlib1g sqlite3 libsqlite3-dev
-  - nuget restore ./src/TweetNaCl.sln
-  - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory testrunner
+  - sudo apt-get install -y curl
+  -  curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -o nuget.exe
+  - mono --runtime=v4.0 nuget.exe restore ./src/TweetNaCl.sln
+  - mono --runtime=v4.0 nuget.exe install NUnit.Runners -Version 2.6.4 -OutputDirectory testrunner
 
 script:
   - xbuild /p:Configuration=Release ./src/TweetNaCl.sln
