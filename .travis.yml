@@ -1,6 +1,10 @@
 #language: csharp
 solution: TweetNaCl.sln
 
+# dotnet cli require Ubuntu 14.04
+sudo: required
+dist: trusty
+
 mono:
   - latest
 
