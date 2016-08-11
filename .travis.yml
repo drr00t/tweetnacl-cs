@@ -23,10 +23,10 @@ mono:
   - latest
 
 install:
-  - nuget restore ./src/TweetNaCl.sln
-#  - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory testrunner
+  - nuget restore src/TweetNaCl.sln
+  - nuget install NUnit.Runners -Version 2.6.4
 
 script:
   - xbuild /p:Configuration=Release ./src/TweetNaCl.sln
-  - mono ./src/packages/NUnit.Runners.2.6.2/tools/nunit-console.exe ./src/TweetNaCl.Tests/bin/Release/TweetNaCl.Tests.dll
+  - mono src/packages/NUnit.Runners.2.6.2/tools/nunit-console.exe src/TweetNaCl.Tests/bin/Release/TweetNaCl.Tests.dll
 
