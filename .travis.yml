@@ -1,13 +1,14 @@
-language: csharp
+#language: csharp
 solution: TweetNaCl.sln
 
 mono:
   - latest
 
 install:
-  - nuget restore TweetNaCl.sln
+  - nuget restore src/TweetNaCl.sln
   - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory testrunner
-  
-  script:
-  - xbuild /p:Configuration=Release TweetNaCl.sln
-  - mono ./testrunner/NUnit.Runners.2.6.4/tools/nunit-console.exe ./TweetNaCl.Tests/bin/Release/TweetNaCl.Tests.dll
+
+script:
+  - xbuild /p:Configuration=Release src/TweetNaCl.sln
+  - mono ./testrunner/NUnit.Runners.2.6.4/tools/nunit-console.exe src/TweetNaCl.Tests/bin/Release/TweetNaCl.Tests.dll
+
