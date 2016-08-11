@@ -9,6 +9,7 @@ mono:
   - latest
 
 install:
+  - nuget
   - nuget restore ./src/TweetNaCl.sln
   - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory testrunner
 
