@@ -121,8 +121,6 @@ namespace NaCl.Tests
             Byte[] decMessage = new Byte[encMessage.Length];
             Byte[] nonce = new Byte[TweetNaCl.BOX_NONCEBYTES];
 
-
-            Array.Copy(bMessage, 0, paddedMessage, TweetNaCl.BOX_ZEROBYTES, bMessage.Length);
             TweetNaCl.RandomBytes(nonce);
 
             String pubKey = Encoding.ASCII.GetString(pk);
