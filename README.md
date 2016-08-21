@@ -1,4 +1,4 @@
-# tweetnacl-cs
+# tweetnacl-cs [![Build Status](https://travis-ci.org/drr00t/tweetnacl-cs.svg)](https://travis-ci.org/drr00t/tweetnacl-cs)
 
 PRE-ALPHA
 
