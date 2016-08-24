@@ -112,7 +112,7 @@ namespace NaCl.Tests
             Byte[] sk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
 
             pk = TweetNaCl.CryptoBoxKeypair(sk);
-            Assert.AreEqual(Encoding.UTF7.GetString(pk).Length, 32, "key generation failed.");
+            Assert.AreEqual(Encoding.ASCII.GetString(pk).Length, 32, "key generation failed.");
 
             String message = "test";
             Byte[] bMessage = Encoding.UTF8.GetBytes(message);
