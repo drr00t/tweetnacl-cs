@@ -16,6 +16,7 @@ Target "Clean" (fun _ ->
 
 Target "BuildApp" (fun _ ->
     !! "src/**/*.csproj"
+      -- "src/**/*.Bench.csproj"
     |> MSBuildRelease buildDir "Build"
     |> Log "AppBuild-Output: "
 )
