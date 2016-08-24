@@ -7,6 +7,19 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TweetNaCl", "TweetNaCl\Twee
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TweetNaCl.Tests", "TweetNaCl.Tests\TweetNaCl.Tests.csproj", "{93DCE450-56A2-40A8-A156-0F76A2A04E67}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TweetNaCl.Bench", "TweetNaCl.Bench\TweetNaCl.Bench.csproj", "{7B6159A9-D5FD-451C-9041-49E0A0E1DEEC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{FB8C45F1-5EC8-466E-BEB8-F86923C165BF}"
+	ProjectSection(SolutionItems) = preProject
+		..\build.bat = ..\build.bat
+		..\build.fsx = ..\build.fsx
+		..\build.sh = ..\build.sh
+		..\LICENSE = ..\LICENSE
+		..\README.md = ..\README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{C8317219-84BB-413F-A1D5-E6E3EB284185}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +34,8 @@ Global
 		{93DCE450-56A2-40A8-A156-0F76A2A04E67}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{93DCE450-56A2-40A8-A156-0F76A2A04E67}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{93DCE450-56A2-40A8-A156-0F76A2A04E67}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B6159A9-D5FD-451C-9041-49E0A0E1DEEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B6159A9-D5FD-451C-9041-49E0A0E1DEEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

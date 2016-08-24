@@ -188,8 +188,6 @@ namespace NaCl.Tests
             Byte[] nonce = new Byte[TweetNaCl.BOX_NONCEBYTES];
             Byte[] k = new Byte[TweetNaCl.BOX_BEFORENMBYTES];
 
-            var result = -10;
-
             pk = TweetNaCl.CryptoBoxKeypair(sk);
             TweetNaCl.RandomBytes(nonce);
 
