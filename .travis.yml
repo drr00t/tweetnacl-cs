@@ -16,7 +16,7 @@ os:
 #    - nuget
 #    - mono-complete
 
-#language: csharp
+language: csharp
 #solution: TweetNaCl.sln
 
 mono:
