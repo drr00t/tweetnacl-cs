@@ -24,8 +24,8 @@ mono:
 
 install:
   - nuget restore src/TweetNaCl.sln
-  - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory testrunner
+  - nuget install NUnit.Runners -Version 3.0.1 -OutputDirectory testrunner
 
 script:
   - xbuild /p:Configuration=Release ./src/TweetNaCl.sln
-  - mono testrunner/NUnit.Runners.2.6.2/tools/nunit-console.exe src/TweetNaCl.Tests/bin/Release/TweetNaCl.Tests.dll
+  - mono ./testrunner/NUnit.Console.3.0.1/tools/nunit3-console.exe src/TweetNaCl.Tests/bin/Release/TweetNaCl.Tests.dll
