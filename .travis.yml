@@ -37,7 +37,7 @@ install:
   - ./configure
   - make
   - sudo make install
- - cd ../../zamabraga/TweetNaCl
+  - cd ../../zamabraga/TweetNaCl
 script:
   - xbuild /p:Configuration=Release ./src/TweetNaCl.sln
   - mono --debug --profile=monocov:outfile=monocovCoverage.cov,+TweetNaCl ./testrunner/NUnit.Console.3.0.1/tools/nunit3-console.exe src/TweetNaCl.Tests/bin/Release/TweetNaCl.Tests.dll
