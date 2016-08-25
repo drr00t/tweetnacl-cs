@@ -25,7 +25,23 @@ mono:
 install:
   - nuget restore src/TweetNaCl.sln
   - nuget install NUnit.Runners -Version 3.0.1 -OutputDirectory testrunner
-
+  - nuget install coveralls.net -Version 0.7.0 -OutputDirectory coveralls
+  - sudo apt-get install gtk-sharp2
+  - curl -sS https://api.nuget.org/packages/mono.cecil.0.9.5.4.nupkg > /tmp/mono.cecil.0.9.5.4.nupkg.zip
+  - unzip /tmp/mono.cecil.0.9.5.4.nupkg.zip -d /tmp/cecil
+  - cp /tmp/cecil/lib/net40/Mono.Cecil.dll .
+  - cp /tmp/cecil/lib/net40/Mono.Cecil.dll /tmp/cecil/
+  - git clone --depth=50 git://github.com/csMACnz/monocov.git ../../csMACnz/monocov
+  - cd ../../csMACnz/monocov
+  - cp /tmp/cecil/Mono.Cecil.dll .
+  - ./configure
+  - make
+  - sudo make install
+ 
 script:
   - xbuild /p:Configuration=Release ./src/TweetNaCl.sln
-  - mono ./testrunner/NUnit.Console.3.0.1/tools/nunit3-console.exe src/TweetNaCl.Tests/bin/Release/TweetNaCl.Tests.dll
+  - mono --debug --profile=monocov:outfile=monocovCoverage.cov,+TweetNaCl ./testrunner/NUnit.Console.3.0.1/tools/nunit3-console.exe src/TweetNaCl.Tests/bin/Release/TweetNaCl.Tests.dll
+  - monocov --export-xml=monocovCoverage monocovCoverage.cov
+  - cat monocovCoverage.cov
+  - ls monocovCoverage
+  - mono coveralls/tools/csmacnz.Coveralls.exe --monocov -i ./monocovCoverage --repoToken $COVERALLS_REPO_TOKEN --commitId $TRAVIS_COMMIT --commitBranch $TRAVIS_BRANCH --commitAuthor "$REPO_COMMIT_AUTHOR" --commitEmail "$REPO_COMMIT_AUTHOR_EMAIL" --commitMessage "$REPO_COMMIT_MESSAGE" --jobId $TRAVIS_JOB_ID  --serviceName travis-ci  --useRelativePaths
