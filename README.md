@@ -1,8 +1,8 @@
 #TweetNaCl-cs
 
-|Branch|Appveyor|Travis|
-|------|:--------:|:------:|
-|master|[![Build status](https://ci.appveyor.com/api/projects/status/a3463mlqmh310och/branch/master?svg=true)](https://ci.appveyor.com/project/drr00t/tweetnacl-cs/branch/master)|[![Build Status](https://travis-ci.org/drr00t/tweetnacl-cs.svg)](https://travis-ci.org/drr00t/tweetnacl-cs)|
+|Branch|Build|Code Cover|
+|:------|--------:|--------:|
+|master|.Net [![Build status](https://ci.appveyor.com/api/projects/status/a3463mlqmh310och/branch/master?svg=true)](https://ci.appveyor.com/project/drr00t/tweetnacl-cs/branch/master)<br>Mono [![Build Status](https://travis-ci.org/drr00t/tweetnacl-cs.svg)](https://travis-ci.org/drr00t/tweetnacl-cs)| Coveralls [![Coverage Status](https://coveralls.io/repos/github/drr00t/tweetnacl-cs/badge.svg?branch=master)](https://coveralls.io/github/drr00t/tweetnacl-cs?branch=master)|
 
 ## About Project
 A C# port of original [TweetNaCl](http://tweetnacl.cr.yp.to/index.html) C language implementation version 20140427.
