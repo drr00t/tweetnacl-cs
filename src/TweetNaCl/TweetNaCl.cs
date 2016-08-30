@@ -1383,13 +1383,13 @@ namespace Nacl
             return Core(pout, pin, k, c, false);
         }
 
-        private static Byte[] CryptoStreamSalsa20Xor(Byte[] message, Int64 b, Byte[] nonce, Int32 nOffset, Byte[] secretKey)
+        private static Byte[] CryptoStreamSalsa20Xor(Byte[] message, Byte[] nonce, Int32 nOffset, Byte[] secretKey)
         {
             Int32 i = 0;
             Byte[] z = new Byte[16];
             Byte[] x = new Byte[64];
             Byte[] cipheredMessage = new Byte[message.Length];
-
+            Int64 messageSize = message.Length;
             UInt32 u = 0;
 
             for (i = 0; i < 8; ++i)
@@ -1400,7 +1400,7 @@ namespace Nacl
             Int32 cOffset = 0;
             Int32 mOffset = 0;
 
-            while (b >= 64)
+            while (messageSize >= 64)
             {
                 CryptoCoreSalsa20(x, z, secretKey, Sigma);
 
@@ -1417,7 +1417,7 @@ namespace Nacl
                     u >>= 8;
                 }
 
-                b -= 64;
+                messageSize -= 64;
                 cOffset += 64;
                 if (message != null)
                 {
@@ -1425,11 +1425,11 @@ namespace Nacl
                 }
             }
 
-            if (b != 0)
+            if (messageSize != 0)
             {
                 CryptoCoreSalsa20(x, z, secretKey, Sigma);
 
-                for (i = 0; i < b; i++)
+                for (i = 0; i < messageSize; i++)
                 {
                     cipheredMessage[cOffset + i] = (Byte)((message != null ? message[mOffset + i] : 0) ^ x[i]);
                 }
@@ -1438,21 +1438,21 @@ namespace Nacl
             return cipheredMessage;
         }
 
-        private static Byte[] CryptoStreamSalsa20(Byte[] message, Int64 d, Byte[] nonce, Int32 nOffset, Byte[] secretKey)
+        private static Byte[] CryptoStreamSalsa20(Byte[] message, Byte[] nonce, Int32 nOffset, Byte[] secretKey)
         {
-            return CryptoStreamSalsa20Xor(message, d, nonce, nOffset, secretKey);
+            return CryptoStreamSalsa20Xor(message, nonce, nOffset, secretKey);
         }
 
         private static Byte[] CryptoStream(Byte[] nonceKey, Int64 d, Byte[] nonce, Byte[] secretKey)
         {
             Byte[] s = CryptoCoreHSalsa20(nonce, secretKey, Sigma);
-            return CryptoStreamSalsa20(nonceKey, nonceKey.Length, nonce, 16, s);
+            return CryptoStreamSalsa20(nonceKey, nonce, 16, s);
         }
 
         private static Byte[] CryptoStreamXor(Byte[] message, Byte[] nonce, Byte[] secretKey)
         {
             Byte[] s = CryptoCoreHSalsa20(nonce, secretKey, Sigma);
-            return CryptoStreamSalsa20Xor(message, message.Length, nonce, 16, s);
+            return CryptoStreamSalsa20Xor(message, nonce, 16, s);
 
         }
 
