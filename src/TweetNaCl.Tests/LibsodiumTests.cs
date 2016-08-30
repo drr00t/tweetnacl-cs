@@ -85,7 +85,7 @@ namespace NaCl.Tests
         public void Libsoduim_TestForBox()
         {
             var encMessage = TweetNaCl.CryptoBox(m, nonce, bobpk, alicesk);
-            Assert.AreEqual(encMessage.Length, m.Length + TweetNaCl.BOX_ZEROBYTES, "encryption failed.");
+            Assert.AreEqual(encMessage.Length, m.Length + TweetNaCl.BoxBoxZeroBytes, "encryption failed.");
         }
     }
 }

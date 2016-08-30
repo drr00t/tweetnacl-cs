@@ -47,14 +47,14 @@ namespace NaCl.Tests
             Byte[] apk = Convert.FromBase64String("GK4GzNY+fbkRPd5fwYUaca70iENh2A1QRss1KBtpWU4=");
             Byte[] ask = Convert.FromBase64String("HQT4qtjv/3Q0nGYX4DB776e6QeUE40wr71MxNSg0+bc=");
 
-            Byte[] bpk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
-            Byte[] bsk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
+            Byte[] bpk = new Byte[TweetNaCl.BoxPublicKeyBytes];
+            Byte[] bsk = new Byte[TweetNaCl.BoxSecretKeyBytes];
 
             String message = "test";
             Byte[] bMessage = Encoding.UTF8.GetBytes(message);
-            Byte[] paddedMessage = new Byte[TweetNaCl.BOX_ZEROBYTES + bMessage.Length];
-            Byte[] nonce = new Byte[TweetNaCl.BOX_NONCEBYTES];
-            Byte[] k = new Byte[TweetNaCl.BOX_BEFORENMBYTES];
+            Byte[] paddedMessage = new Byte[TweetNaCl.BoxZeroBytes + bMessage.Length];
+            Byte[] nonce = new Byte[TweetNaCl.BoxNonceBytes];
+            Byte[] k = new Byte[TweetNaCl.BoxBeforenmBytes];
 
             var result = -10;
 
