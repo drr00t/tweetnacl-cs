@@ -19,34 +19,35 @@ namespace Nacl
         /// <summary>
         /// crypto_scalarmult_curve25519
         /// </summary>
-        public static readonly Int32 SCALARMULT_BYTES = 32;
+        public static readonly Int32 ScalarmultBytes = 32;
 
         /// <summary>
         /// crypto_scalarmult_curve25519
         /// </summary>
-        public static readonly Int32 SCALARMULT_SCALARBYTES = 32;
+        public static readonly Int32 ScalarBytes = 32;
         
         /// <summary>
         /// crypto_box_beforenm computed shared key size 
         /// </summary>
-        public static readonly Int32 BOX_BEFORENMBYTES = 32;
-        public static readonly Int32 BOX_PUBLICKEYBYTES = 32;
-        public static readonly Int32 BOX_SECRETKEYBYTES = 32;
-        public static readonly Int32 BOX_NONCEBYTES = 24;
-        public static readonly Int32 BOX_ZEROBYTES = 32;
-        public static readonly Int32 BOX_BOXZEROBYTES = 16;
+        public static readonly Int32 BoxBeforenmBytes = 32;
+        public static readonly Int32 BoxPublicKeyBytes = 32;
+        public static readonly Int32 BoxSecretKeyBytes = 32;
+        public static readonly Int32 BoxNonceBytes = 24;
+        public static readonly Int32 BoxZeroBytes = 32;
+        public static readonly Int32 BoxBoxZeroBytes = 16;
 
-        public static readonly Int32 SECRETBOX_NONCEBYTES = 24;
-        public static readonly Int32 SECRETBOX_KEYBYTES = 32;
+        public static readonly Int32 SecretBoxNonceBytes = 24;
+        public static readonly Int32 SecretBoxKeyBytes = 32;
         
         /// <summary>
         /// SHA-512 hash bytes
         /// </summary>
-        public static readonly Int32 HASH_BYTES = 64;
+        public static readonly Int32 HashBytes = 64;
         
-        public static readonly Int32 SIGN_PUBLICKEYBYTES = 32;
-        public static readonly Int32 SIGN_SECRETKEYBYTES = 64;
-        public static readonly Int32 SIGN_BYTES = 64;
+        public static readonly Int32 SignPublicKeyBytes = 32;
+        public static readonly Int32 SignSecretKeyBytes = 64;
+
+        public static readonly Int32 SignBytes = 64;
 
 
         public class InvalidSignatureException : CryptographicException { }
@@ -61,7 +62,7 @@ namespace Nacl
         /// <returns>the resulting group element q of length SCALARMULT_BYTES.</returns>
         public static Byte[] CryptoScalarmult(Byte[] n, Byte[] p)
         {
-            Byte[] q = new Byte[SCALARMULT_BYTES];
+            Byte[] q = new Byte[ScalarmultBytes];
             Byte[] z = new Byte[32];
             Int64[] x = new Int64[80];
             Int64[] a = new Int64[GF_LEN],
@@ -235,7 +236,7 @@ namespace Nacl
         /// <returns></returns>
         public static Byte[] CryptoSignKeypair(Byte[] secretKey)
         {
-            Byte[] publicKey = new Byte[SIGN_PUBLICKEYBYTES];
+            Byte[] publicKey = new Byte[SignPublicKeyBytes];
             Byte[] d = new Byte[64];
             Int64[][] /*gf*/ p = new Int64[4][] { new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN], new Int64[GF_LEN] };
 
@@ -271,7 +272,7 @@ namespace Nacl
         /// <returns></returns>
         public static Byte[] CryptoSign(Byte[] message, Byte[] secretKey)
         {
-            Byte[] signedMessage = new Byte[SIGN_BYTES + message.Length];
+            Byte[] signedMessage = new Byte[SignBytes + message.Length];
 
             Byte[] d = new Byte[64];
             Byte[] h = new Byte[64];
@@ -487,7 +488,7 @@ namespace Nacl
 
         private static Byte[] CryptoCoreHSalsa20(Byte[] pin, Byte[] k, Byte[] c)
         {
-            Byte[] pout = new Byte[BOX_BEFORENMBYTES];
+            Byte[] pout = new Byte[BoxBeforenmBytes];
             return Core(pout, pin, k, c, true);
         }
         
@@ -926,18 +927,18 @@ namespace Nacl
         /// </returns>
         public static Int32 CryptoHash(Byte[] hash, Byte[] message, Int32 n)
         {
-            Byte[] h = new Byte[HASH_BYTES];
+            Byte[] h = new Byte[HashBytes];
             Byte[] x = new Byte[256];
             Int32 b = n;
 
-            for (var i = 0; i < HASH_BYTES; i++)
+            for (var i = 0; i < HashBytes; i++)
             {
                 h[i] = iv[i];
             }
 
             CryptoHashBlocks(h, message, n);
 
-            for (var i = 0; i < HASH_BYTES; i++)
+            for (var i = 0; i < HashBytes; i++)
             {
                 for (var j = 0; j < message.Length; j++)
                 {
@@ -971,7 +972,7 @@ namespace Nacl
 
             CryptoHashBlocks(h, x, n);
 
-            for (var i = 0; i < HASH_BYTES; i++)
+            for (var i = 0; i < HashBytes; i++)
             {
                 hash[i] = h[i];
             }
@@ -1174,32 +1175,36 @@ namespace Nacl
         /// <param name="cipheredMessage"></param>
         /// <param name="message"></param>
         /// <param name="nonce"></param>
-        /// <param name="k"></param>
+        /// <param name="secretkey"></param>
         /// <returns></returns>
-        public static Byte[] CryptoSecretBox(Byte[] message, Byte[] nonce, Byte[] k)
+        public static Byte[] CryptoSecretBox(Byte[] message, Byte[] nonce, Byte[] secretkey)
         {
-            Byte[] cipheredMessage = new Byte[message.Length + TweetNaCl.BOX_ZEROBYTES];
-            Byte[] paddedMessage = new Byte[message.Length + TweetNaCl.BOX_ZEROBYTES];
-            Byte[] cMessage = new Byte[message.Length];
+            Byte[] paddedMessage = new Byte[message.Length + BoxZeroBytes];
+            Byte[] boxMessage = new Byte[message.Length];
+            Byte[] cMessage = new Byte[message.Length + BoxBoxZeroBytes];
 
-            Array.Copy(message, 0, paddedMessage, TweetNaCl.BOX_ZEROBYTES, message.Length);
+            Array.Copy(message, 0, paddedMessage, BoxZeroBytes, message.Length);
 
-            if (CryptoStreamXor(cipheredMessage, paddedMessage, paddedMessage.Length, nonce, k) != 0)
+            var ciphered = CryptoStreamXor(paddedMessage, nonce, secretkey);
+
+            if (ciphered.Length == 0)
             {
                 throw new InvalidCipherTextException();
             }
 
-            if (CryptoOnetimeAuth(cipheredMessage, 16, cipheredMessage, 32, paddedMessage.Length - 32, cipheredMessage) != 0)
+            if (CryptoOnetimeAuth(ciphered, 16, ciphered, 32, paddedMessage.Length - 32, ciphered) != 0)
             {
                 throw new InvalidCipherTextException();
             }
 
-            for (var i = 0; i < 16; ++i)
+            for (var i = 0; i < BoxBoxZeroBytes; ++i)
             {
-                cipheredMessage[i] = 0;
+                ciphered[i] = 0;
             }
 
-            return cipheredMessage;
+            Array.Copy(ciphered, BoxBoxZeroBytes, cMessage, 0, ciphered.Length - BoxBoxZeroBytes);
+
+            return cMessage;
         }
 
         /// <summary>
@@ -1208,37 +1213,36 @@ namespace Nacl
         /// <param name="paddedMessage"></param>
         /// <param name="cipheredMessage"></param>
         /// <param name="nonce"></param>
-        /// <param name="k"></param>
+        /// <param name="secretKey"></param>
         /// <returns></returns>
-        public static Byte[] CryptoSecretBoxOpen(Byte[] cipheredMessage, Byte[] nonce, Byte[] k)
+        public static Byte[] CryptoSecretBoxOpen(Byte[] cipheredMessage, Byte[] nonce, Byte[] secretKey)
         {
             Byte[] x = new Byte[32];
-            Byte[] decMessage = new Byte[cipheredMessage.Length];
-            Byte[] message = new Byte[cipheredMessage.Length - TweetNaCl.BOX_ZEROBYTES];
+            Byte[] boxCipheredMessage = new Byte[cipheredMessage.Length + BoxBoxZeroBytes];
+            Byte[] message = new Byte[cipheredMessage.Length - BoxBoxZeroBytes];
 
-            if (cipheredMessage.Length < 32)
+            Array.Copy(cipheredMessage, 0, boxCipheredMessage, BoxBoxZeroBytes, cipheredMessage.Length);
+
+            if (boxCipheredMessage.Length < BoxZeroBytes)
             {
                 throw new InvalidCipherTextException();
             }
 
-            if(CryptoStream(x, 32, nonce, k) != 0)
+            var nonceKey = CryptoStream(x, 32, nonce, secretKey);
+
+            if (nonceKey.Length == 0)
             {
                 throw new InvalidCipherTextException();
             }
 
-            if (CryptoOnetimeauthVerify(cipheredMessage, 16, cipheredMessage, 32, cipheredMessage.Length - 32, x) != 0)
+            if (CryptoOnetimeauthVerify(boxCipheredMessage, BoxBoxZeroBytes, boxCipheredMessage, BoxZeroBytes, boxCipheredMessage.Length - BoxZeroBytes, nonceKey) != 0)
             {
                 throw new InvalidCipherTextException();
             }
 
-            CryptoStreamXor(decMessage, cipheredMessage, cipheredMessage.Length, nonce, k);
+            var decMessage = CryptoStreamXor(boxCipheredMessage, nonce, secretKey);
 
-            for (var i = 0; i > 31; ++i)
-            {
-                message[i] = 0;
-            }
-
-            Array.Copy(decMessage, 32, message, 0, message.Length);
+            Array.Copy(decMessage, BoxZeroBytes, message, 0, message.Length);
 
             return message;
         }
@@ -1249,7 +1253,7 @@ namespace Nacl
         /// <param name="d">generated random byte</param>
         public static void RandomBytes(Byte[] d)
         {
-            using (RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider())
+            using (var rng = new RNGCryptoServiceProvider())
             {
                 rng.GetNonZeroBytes(d);
             }
@@ -1379,27 +1383,18 @@ namespace Nacl
             return Core(pout, pin, k, c, false);
         }
 
-        private static Int32 CryptoStreamSalsa20Xor(Byte[] c, Byte[] m, Int64 b, Byte[] n, Int32 nOffset, Byte[] k)
+        private static Byte[] CryptoStreamSalsa20Xor(Byte[] message, Int64 b, Byte[] nonce, Int32 nOffset, Byte[] secretKey)
         {
             Int32 i = 0;
             Byte[] z = new Byte[16];
             Byte[] x = new Byte[64];
+            Byte[] cipheredMessage = new Byte[message.Length];
 
             UInt32 u = 0;
 
-            if (b == 0)
-            {
-                return 0;
-            }
-
-            for (i = 0; i < 16; ++i)
-            {
-                z[i] = 0;
-            }
-
             for (i = 0; i < 8; ++i)
             {
-                z[i] = n[nOffset + i];
+                z[i] = nonce[nOffset + i];
             }
 
             Int32 cOffset = 0;
@@ -1407,11 +1402,11 @@ namespace Nacl
 
             while (b >= 64)
             {
-                CryptoCoreSalsa20(x, z, k, Sigma);
+                CryptoCoreSalsa20(x, z, secretKey, Sigma);
 
                 for (i = 0; i < 64; ++i)
                 {
-                    c[cOffset + i] = (Byte)((m != null ? m[mOffset + i] : 0) ^ x[i]);
+                    cipheredMessage[cOffset + i] = (Byte)((message != null ? message[mOffset + i] : 0) ^ x[i]);
                 }
 
                 u = 1;
@@ -1424,7 +1419,7 @@ namespace Nacl
 
                 b -= 64;
                 cOffset += 64;
-                if (m != null)
+                if (message != null)
                 {
                     mOffset += 64;
                 }
@@ -1432,32 +1427,32 @@ namespace Nacl
 
             if (b != 0)
             {
-                CryptoCoreSalsa20(x, z, k, Sigma);
+                CryptoCoreSalsa20(x, z, secretKey, Sigma);
 
                 for (i = 0; i < b; i++)
                 {
-                    c[cOffset + i] = (Byte)((m != null ? m[mOffset + i] : 0) ^ x[i]);
+                    cipheredMessage[cOffset + i] = (Byte)((message != null ? message[mOffset + i] : 0) ^ x[i]);
                 }
             }
 
-            return 0;
+            return cipheredMessage;
         }
 
-        private static Int32 CryptoStreamSalsa20(Byte[] c, Int64 d, Byte[] n, Int32 nOffset, Byte[] k)
+        private static Byte[] CryptoStreamSalsa20(Byte[] message, Int64 d, Byte[] nonce, Int32 nOffset, Byte[] secretKey)
         {
-            return CryptoStreamSalsa20Xor(c, null, d, n, nOffset, k);
+            return CryptoStreamSalsa20Xor(message, d, nonce, nOffset, secretKey);
         }
 
-        private static Int32 CryptoStream(Byte[] c, Int64 d, Byte[] n, Byte[] k)
+        private static Byte[] CryptoStream(Byte[] nonceKey, Int64 d, Byte[] nonce, Byte[] secretKey)
         {
-            Byte[] s = CryptoCoreHSalsa20(n, k, Sigma);
-            return CryptoStreamSalsa20(c, d, n, 16, s);
+            Byte[] s = CryptoCoreHSalsa20(nonce, secretKey, Sigma);
+            return CryptoStreamSalsa20(nonceKey, nonceKey.Length, nonce, 16, s);
         }
 
-        private static Int32 CryptoStreamXor(Byte[] c, Byte[] m, Int64 d, Byte[] n, Byte[] k)
+        private static Byte[] CryptoStreamXor(Byte[] message, Byte[] nonce, Byte[] secretKey)
         {
-            Byte[] s = CryptoCoreHSalsa20(n, k, Sigma);
-            return CryptoStreamSalsa20Xor(c, m, d, n, 16, s);
+            Byte[] s = CryptoCoreHSalsa20(nonce, secretKey, Sigma);
+            return CryptoStreamSalsa20Xor(message, message.Length, nonce, 16, s);
 
         }
 
