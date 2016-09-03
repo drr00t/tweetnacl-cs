@@ -64,7 +64,7 @@ namespace NaCl.Tests
 
         /* API requires first 32 bytes to be 0 */
         static readonly Byte[] m = 
-            { 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+            {   0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
                 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
                 0,    0,    0,    0,    0,    0,    0,    0,    0xbe, 0x07, 0x5f, 0xc5,
                 0x3c, 0x81, 0xf2, 0xd5, 0xcf, 0x14, 0x13, 0x16, 0xeb, 0xeb, 0x0c, 0x7b,
