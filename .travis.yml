@@ -37,6 +37,7 @@ install:
   - ./configure
   - make
   - sudo make install
+  - echo pwd
   - cd /home/travis/build/zamabraga/tweetnacl-cs
 script:
   - xbuild /p:Configuration=Release ./src/TweetNaCl.sln
