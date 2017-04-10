@@ -42,8 +42,8 @@ install:
 script:
   - xbuild /p:Configuration=Release ./src/TweetNaCl.sln
   - export LD_LIBRARY_PATH=/usr/local/lib
+  - ls src/TweetNaCl.Tests/bin/Release/
   - mono --debug --profile=monocov:outfile=monocovCoverage.cov,+TweetNaCl  ./src/packages/NUnit.Console.3.0.1/tools/nunit3-console.exe src/TweetNaCl.Tests/bin/Release/TweetNaCl.Tests.dll
-  - ls 
   - monocov --export-xml=monocovCoverage monocovCoverage.cov
   - cat monocovCoverage.cov
   - ls monocovCoverage
