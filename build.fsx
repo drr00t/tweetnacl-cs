@@ -16,12 +16,14 @@ Target "Clean" (fun _ ->
 
 Target "BuildLibDebug" (fun _ ->
     !! "src/**/*.csproj"
-    |> MSBuildRelease buildDir "Build"
+    -- "src/**/*.Bench.csproj"
+    |> MSBuildDebug buildDir "Build"
     |> Log "AppBuild-Output: "
 )
 
 Target "BuildLibRelease" (fun _ ->
     !! "src/**/*.csproj"
+    -- "src/**/*.Bench.csproj"
     |> MSBuildRelease deployDir "Build"
     |> Log "AppBuild-Output: "
 )
