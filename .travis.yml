@@ -25,7 +25,7 @@ mono:
 install:
   - nuget restore src/TweetNaCl.sln
   - nuget install NUnit.Runners -Version 3.0.1 -OutputDirectory src/packages
-  - nuget install coveralls.net -Version 0.7.0 -OutputDirectory src/packages
+  - nuget install coveralls.net -OutputDirectory src/packages
   - sudo apt-get install gtk-sharp2
   - curl -sS https://api.nuget.org/packages/mono.cecil.0.9.5.4.nupkg > /tmp/mono.cecil.0.9.5.4.nupkg.zip
   - unzip /tmp/mono.cecil.0.9.5.4.nupkg.zip -d /tmp/cecil
@@ -36,9 +36,7 @@ install:
   - cp /tmp/cecil/Mono.Cecil.dll .
   - ./configure
   - make
-  - sudo make install
-  - pwd
-  - cd /home/travis/build/zamabraga/tweetnacl-cs
+  - sudo make install  
 script:
   - xbuild /p:Configuration=Release ./src/TweetNaCl.sln
   - export LD_LIBRARY_PATH=/usr/local/lib  
