@@ -40,6 +40,7 @@ install:
   - cd ../../zamabraga/tweetnacl-cs
 script:
   - xbuild /p:Configuration=Release ./src/TweetNaCl.sln
+  - ls
   - export LD_LIBRARY_PATH=/usr/local/lib  
   - mono --debug --profile=monocov:outfile=monocovCoverage.cov,+[TweetNaCl],+[TweetNaCl.Tests] ./src/packages/NUnit.Console.3.0.1/tools/nunit3-console.exe ./src/TweetNaCl.Tests/bin/Release/TweetNaCl.Tests.dll
   - cat monocovCoverage.cov
