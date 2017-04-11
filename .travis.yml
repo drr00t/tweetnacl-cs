@@ -36,7 +36,8 @@ install:
   - cp /tmp/cecil/Mono.Cecil.dll .
   - ./configure
   - make
-  - sudo make install  
+  - sudo make install
+  - cd ../../zamabraga/tweetnacl-cs
 script:
   - xbuild /p:Configuration=Release ./src/TweetNaCl.sln
   - export LD_LIBRARY_PATH=/usr/local/lib  
