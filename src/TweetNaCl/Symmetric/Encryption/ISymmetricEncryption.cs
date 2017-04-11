@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Nacl.Symmetric.Encryption
+namespace NaCl.Symmetric.Encryption
 {
     public interface ISymmetricEncryption
     {

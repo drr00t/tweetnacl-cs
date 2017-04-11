@@ -1,12 +1,11 @@
 ﻿using Metrics;
-using Nacl;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace NaCl.Bench
+namespace TweetNaCl.Bench
 {
     class Program
     {
@@ -18,16 +17,16 @@ namespace NaCl.Bench
 
             for (var i = 0; i < 10; i++)
             {
-                Byte[] apk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
-                Byte[] ask = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
+                Byte[] apk = new Byte[TweetNaCl.BoxPublicKeyBytes];
+                Byte[] ask = new Byte[TweetNaCl.BoxSecretKeyBytes];
 
-                Byte[] bpk = new Byte[TweetNaCl.BOX_PUBLICKEYBYTES];
-                Byte[] bsk = new Byte[TweetNaCl.BOX_SECRETKEYBYTES];
+                Byte[] bpk = new Byte[TweetNaCl.BoxPublicKeyBytes];
+                Byte[] bsk = new Byte[TweetNaCl.BoxSecretKeyBytes];
 
                 String message = "test";
                 Byte[] bMessage = Encoding.UTF8.GetBytes(message);
-                Byte[] nonce = new Byte[TweetNaCl.BOX_NONCEBYTES];
-                Byte[] k = new Byte[TweetNaCl.BOX_BEFORENMBYTES];
+                Byte[] nonce = new Byte[TweetNaCl.BoxNonceBytes];
+                Byte[] k = new Byte[TweetNaCl.BoxBeforenmBytes];
 
                 apk = TweetNaCl.CryptoBoxKeypair(ask);
                 bpk = TweetNaCl.CryptoBoxKeypair(bsk);

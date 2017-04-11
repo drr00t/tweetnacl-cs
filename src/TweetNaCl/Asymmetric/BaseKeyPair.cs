@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Nacl
+namespace NaCl
 {
     public class BaseKeyPair
     {

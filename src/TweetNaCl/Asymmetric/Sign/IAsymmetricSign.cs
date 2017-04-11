@@ -6,7 +6,7 @@
  */
 
 
-namespace Nacl.Asymmetric.Sign
+namespace NaCl.Asymmetric.Sign
 {
     public interface IAsymmetricSign
     {

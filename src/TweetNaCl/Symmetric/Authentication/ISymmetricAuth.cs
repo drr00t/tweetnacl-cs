@@ -6,7 +6,7 @@
  */
 
 
-namespace Nacl.Symmetric.Authentication
+namespace NaCl.Symmetric.Authentication
 {
     public interface ISymmetricAuth
     {

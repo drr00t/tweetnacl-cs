@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Nacl.Asymmetric.Encryption
+namespace NaCl.Asymmetric.Encryption
 {
     public class EncryptionKeyPair : BaseKeyPair
     {

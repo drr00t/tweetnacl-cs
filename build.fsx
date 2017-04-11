@@ -14,10 +14,15 @@ Target "Clean" (fun _ ->
     CleanDir buildDir
 )
 
-Target "BuildApp" (fun _ ->
+Target "BuildLibDebug" (fun _ ->
     !! "src/**/*.csproj"
-      -- "src/**/*.Bench.csproj"
     |> MSBuildRelease buildDir "Build"
+    |> Log "AppBuild-Output: "
+)
+
+Target "BuildLibRelease" (fun _ ->
+    !! "src/**/*.csproj"
+    |> MSBuildRelease deployDir "Build"
     |> Log "AppBuild-Output: "
 )
 
@@ -34,10 +39,10 @@ Target "BuildEnv" (fun _ ->
     trace "Running script on Windows"
 )
 
-
 // Dependencies Windows
 "Clean"
-    ==> "BuildApp"
+    ==> "BuildLibDebug"
+    ==> "BuildLibRelease"
     ==> "Tests"
     ==> "BuildEnv"
 

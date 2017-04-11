@@ -6,7 +6,7 @@
  */
 
 
-namespace Nacl.Asymmetric.Encryption
+namespace NaCl.Asymmetric.Encryption
 {
     public interface IAsymmetricDecryption
     {
