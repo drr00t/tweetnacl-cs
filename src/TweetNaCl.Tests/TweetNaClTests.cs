@@ -27,20 +27,18 @@
 
 
 using NaCl;
-using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
+using Xunit;
 
 namespace TweetNaCl.Tests
 {
-    [TestFixture]
     public class TweetNaClTests
     {
-        [Test]
+
         public void RandomBytesGeneration_Should_Maintain_Length()
         {
             //Arrange
@@ -61,13 +59,13 @@ namespace TweetNaCl.Tests
             String text100 = Encoding.ASCII.GetString(b100);
             String text200 = Encoding.ASCII.GetString(b200);
 
-            Assert.AreEqual(1, text1.Length);
-            Assert.AreEqual(10, text10.Length);
-            Assert.AreEqual(100, text100.Length);
-            Assert.AreEqual(200, text200.Length);
+            Assert.Equal(1, text1.Length);
+            Assert.Equal(10, text10.Length);
+            Assert.Equal(100, text100.Length);
+            Assert.Equal(200, text200.Length);
         }
 
-        [Test]
+        [Fact]
         public void CryptoScalarmult_Should_Success()
         {
             //Arrange
@@ -82,10 +80,10 @@ namespace TweetNaCl.Tests
             q = TweetNaCl.CryptoScalarmult(n, p);
 
             //Assert
-            Assert.AreEqual(Encoding.ASCII.GetString(q).Length, 32, "wrong size for resulting group element q.");
+            Assert.Equal(Encoding.ASCII.GetString(q).Length, 32);
         }
 
-        [Test]
+        [Fact]
         public void CryptoBoxKeypair_Should_Success()
         {
             //Arrange
@@ -96,10 +94,10 @@ namespace TweetNaCl.Tests
             pk = TweetNaCl.CryptoBoxKeypair(sk);
 
             //Assert
-            Assert.AreEqual(Encoding.ASCII.GetString(pk).Length, 32, "key generation failed.");
+            Assert.Equal(Encoding.ASCII.GetString(pk).Length, 32);
         }
 
-        [Test]
+        [Fact]
         public void CryptoBoxBeforenm_MessageEncryption_Should_Success()
         {
             //Arrange
@@ -112,10 +110,10 @@ namespace TweetNaCl.Tests
             var k = TweetNaCl.CryptoBoxBeforenm(pk, sk);
 
             //Assert
-            Assert.AreEqual(k.Length, TweetNaCl.BoxBeforenmBytes, "generation of K for encryption failed.");
+            Assert.Equal(k.Length, TweetNaCl.BoxBeforenmBytes);
         }
 
-        [Test]
+        [Fact]
         public void CryptoBoxAfternm_MessageEncryption_Should_Success()
         {
             //Arrange
@@ -134,10 +132,10 @@ namespace TweetNaCl.Tests
             var encMessage = TweetNaCl.CryptoBoxAfternm(bMessage, nonce, k);
 
             //Assert
-            Assert.AreEqual(encMessage.Length, bMessage.Length + TweetNaCl.BoxBoxZeroBytes, "encryption failed.");
+            Assert.Equal(encMessage.Length, bMessage.Length + TweetNaCl.BoxBoxZeroBytes);
         }
+        [Fact]
 
-        [Test]
         public void CryptoBoxOpenAfternm_Decryption_Should_Success()
         {
             //Arrange
@@ -156,15 +154,15 @@ namespace TweetNaCl.Tests
             var decMessage = TweetNaCl.CryptoBoxOpenAfternm(encMessage, nonce, k);
 
             //Assert
-            Assert.AreEqual(decMessage.Length, bMessage.Length, "decryption failed.");
-            Assert.AreEqual(decMessage, bMessage, "decryption failed.");
+            Assert.Equal(decMessage.Length, bMessage.Length);
+            Assert.Equal(decMessage, bMessage);
 
             var resultMessage = Encoding.ASCII.GetString(decMessage);
-            Assert.AreEqual(resultMessage, expectedMessage, "decryption failed.");
+            Assert.Equal(resultMessage, expectedMessage);
         }
 
 
-        [Test]
+        [Fact]
         public void CryptoBox_MessageEncryption_Should_Success()
         {
             //Arrange
@@ -181,10 +179,10 @@ namespace TweetNaCl.Tests
             var encMessage = TweetNaCl.CryptoBox(bMessage, nonce, pk, sk);
 
             //Assert
-            Assert.AreEqual(encMessage.Length, bMessage.Length + TweetNaCl.BoxBoxZeroBytes, "encryption failed.");
+            Assert.Equal(encMessage.Length, bMessage.Length + TweetNaCl.BoxBoxZeroBytes);
         }
 
-        [Test]
+        [Fact]
         public void CryptoBoxOpen_DecryptionDifferentKeyPair_Should_Success()
         {
             //Arrange
@@ -208,14 +206,14 @@ namespace TweetNaCl.Tests
             var decMessage = TweetNaCl.CryptoBoxOpen(encMessage, nonce, apk, bsk);
 
             //Assert
-            Assert.AreEqual(encMessage.Length, bMessage.Length + TweetNaCl.BoxBoxZeroBytes, "encryption failed.");
-            Assert.AreEqual(decMessage.Length, bMessage.Length, "decryption failed.");
+            Assert.Equal(encMessage.Length, bMessage.Length + TweetNaCl.BoxBoxZeroBytes);
+            Assert.Equal(decMessage.Length, bMessage.Length);
 
             var resultMessage = Encoding.ASCII.GetString(decMessage);
-            Assert.AreEqual(resultMessage, expectedMessage, "decryption failed.");
+            Assert.Equal(resultMessage, expectedMessage);
         }
 
-        [Test]
+        [Fact]
         public void CryptoSecretBox_Should_Success()
         {
             //Arrange
@@ -230,10 +228,10 @@ namespace TweetNaCl.Tests
             var encMessage = TweetNaCl.CryptoSecretBox(bMessage, nonce, sk);
 
             //Assert
-            Assert.AreEqual(encMessage.Length, bMessage.Length + TweetNaCl.BoxBoxZeroBytes, "encryption failed.");
+            Assert.Equal(encMessage.Length, bMessage.Length + TweetNaCl.BoxBoxZeroBytes);
         }
 
-        [Test]
+        [Fact]
         public void CryptoSecretBoxOpen_Decryption_Should_Success()
         {
             //Arrange
@@ -249,11 +247,11 @@ namespace TweetNaCl.Tests
 
             //Act
             var decMessage = TweetNaCl.CryptoSecretBoxOpen(encMessage, nonce, sk);
-            Assert.AreEqual(decMessage.Length, bMessage.Length, "decryption failed.");
-            Assert.AreEqual(decMessage, bMessage, "decryption failed.");
+            Assert.Equal(decMessage.Length, bMessage.Length);
+            Assert.Equal(decMessage, bMessage);
         }
 
-        [Test]
+        [Fact]
         public void CryptoHash_MessageHashing_Should_Success()
         {
             //Arrange
@@ -270,12 +268,12 @@ namespace TweetNaCl.Tests
             secontResult = TweetNaCl.CryptoHash(hsh2, bMessage, bMessage.Length);
 
             //Assert
-            Assert.AreNotEqual(firstResult, -1, "First hashing call for message generation failed.");
-            Assert.AreNotEqual(secontResult, -1, "Second hashing call for message generation failed.");
-            Assert.AreEqual(hsh1, hsh2, "hash for message are not equal.");
+            Assert.NotEqual(firstResult, -1);
+            Assert.NotEqual(secontResult, -1);
+            Assert.Equal(hsh1, hsh2);
         }
 
-        [Test]
+        [Fact]
         public void CryptoSignKeypair_Generation_Should_Success()
         {
             //Arrange
@@ -285,11 +283,11 @@ namespace TweetNaCl.Tests
             Byte[] spk = TweetNaCl.CryptoSignKeypair(ssk);
 
             //Assert
-            Assert.AreEqual(Encoding.ASCII.GetString(spk).Length, 32, "Public Key for message sign generation failed.");
-            Assert.AreEqual(Encoding.ASCII.GetString(ssk).Length, 64, "Secret Key for message sign generation failed.");
+            Assert.Equal(Encoding.ASCII.GetString(spk).Length, 32);
+            Assert.Equal(Encoding.ASCII.GetString(ssk).Length, 64);
         }
 
-        [Test]
+        [Fact]
         public void CryptoSign_Should_Success()
         {
             //Arrange
@@ -303,10 +301,10 @@ namespace TweetNaCl.Tests
             sMessage = TweetNaCl.CryptoSign(bMessage, ssk);
 
             //Assert
-            Assert.AreEqual(Encoding.ASCII.GetString(sMessage).Length, bMessage.Length + TweetNaCl.SignBytes, "Message sign failed.");
+            Assert.Equal(Encoding.ASCII.GetString(sMessage).Length, bMessage.Length + TweetNaCl.SignBytes);
         }
 
-        [Test]
+        [Fact]
         public void CryptoSignOpen_Should_Success()
         {
             //Arrange
@@ -321,8 +319,8 @@ namespace TweetNaCl.Tests
 
             //Act
             cMessage = TweetNaCl.CryptoSignOpen(sMessage, spk);
-            Assert.AreEqual(cMessage.Length, bMessage.Length, "Message sign verification failed.");
-            Assert.AreEqual(Encoding.UTF8.GetString(cMessage), message, "Messages sign verification failed.");
+            Assert.Equal(cMessage.Length, bMessage.Length);
+            Assert.Equal(Encoding.UTF8.GetString(cMessage), message);
         }
     }
 }
