@@ -11,4 +11,4 @@ mono:
   - latest
 
 script:
-  . build.sh
+  bash ./build.sh
