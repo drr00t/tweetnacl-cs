@@ -22,7 +22,8 @@ build_script:
     ".nuget\NuGet.exe" "Install" "OpenCover" "-OutputDirectory" "tools" "-Version" "4.6.519"
     ".nuget\NuGet.exe" "Install" "coveralls.net" "-OutputDirectory" "tools"
 
-    "tools\FAKE\tools\Fake.exe" build.fsx
+    "dotnet restore src/TweetNaCl.Tests/TweetNaCl.Test.csproj"
+    "dotnet test src/TweetNaCl.Tests/TweetNaCl.Test.csproj"
 
 test_script:
 - ps: >-
