@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  */
-
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -1253,9 +1252,9 @@ namespace TweetNaCl
         /// <param name="d">generated random byte</param>
         public static void RandomBytes(Byte[] d)
         {
-            using (var rng = new RNGCryptoServiceProvider())
+            using (var rng = RandomNumberGenerator.Create())
             {
-                rng.GetNonZeroBytes(d);
+                rng.GetBytes(d);                
             }
         }
 
