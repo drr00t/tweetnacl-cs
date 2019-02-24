@@ -1,6 +1,6 @@
 language: csharp
 mono: none
-dotnet: 1.0.3
+dotnet: 2.1.502
 dist: trusty
 script:
  - cd ./src/TweetNaCl.Tests
