@@ -4,5 +4,3 @@ services:
   - docker
 script:
   - docker build --no-cache --tag tweentnacl-cs:0.1 .
-after_script:
-  - docker rmi $(docker images -f "dangling=true" -q)
