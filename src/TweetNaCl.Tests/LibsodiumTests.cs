@@ -27,17 +27,16 @@
 
 
 using NaCl;
-using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
+using Xunit;
 
 namespace TweetNaCl.Tests
 {
-    [TestFixture]
+   
     public class LibsodiumTests
     {
 
@@ -80,12 +79,12 @@ namespace TweetNaCl.Tests
                 0x76, 0x38, 0x48, 0x64, 0x5e, 0x07, 0x05 };
 
         #endregion
-
-        [Test]
+        
+        [Fact]       
         public void Libsoduim_TestForBox()
         {
             var encMessage = TweetNaCl.CryptoBox(m, nonce, bobpk, alicesk);
-            Assert.AreEqual(encMessage.Length, m.Length + TweetNaCl.BoxBoxZeroBytes, "encryption failed.");
+            Assert.Equal(encMessage.Length, m.Length + TweetNaCl.BoxBoxZeroBytes);                   
         }
     }
 }

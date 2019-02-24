@@ -27,21 +27,20 @@
 
 
 using NaCl;
-using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
+using Xunit;
 
 namespace TweetNaCl.Tests
 {
-    [TestFixture]
+
     public class TweetNaClJSTests
     {
 
-        [Test]
+        [Fact]       
         public void TestForMessageDecryptionTweetNaCljsKeyPair()
         {
             Byte[] apk = Convert.FromBase64String("GK4GzNY+fbkRPd5fwYUaca70iENh2A1QRss1KBtpWU4=");
@@ -59,19 +58,19 @@ namespace TweetNaCl.Tests
             var result = -10;
 
             apk = TweetNaCl.CryptoBoxKeypair(ask);
-            Assert.AreNotEqual(result, -1, "key pair A generation failed.");
+            Assert.NotEqual(result, -1);
 
             bpk = TweetNaCl.CryptoBoxKeypair(bsk);
-            Assert.AreNotEqual(result, -1, "key pair B generation failed.");
+            Assert.NotEqual(result, -1);
 
             TweetNaCl.RandomBytes(nonce);
-            Assert.AreNotEqual(result, -1, "randombytes generation failed.");
+            Assert.NotEqual(result, -1);
 
             var encMessage = TweetNaCl.CryptoBox(paddedMessage, nonce, bpk, ask);
-            Assert.AreNotEqual(result, -1, "encryption failed.");
+            Assert.NotEqual(result, -1);
 
             var decMessage = TweetNaCl.CryptoBoxOpen(encMessage, nonce, apk, bsk);
-            Assert.AreNotEqual(result, -1, "decryption failed.");
+            Assert.NotEqual(result, -1);
         }
     }
 }

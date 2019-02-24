@@ -1,0 +1,12 @@
+version: '3'
+services:
+  lib:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: tweetnacl-cs
+    image: tweetnacl-cs:1.0
+    volumes:
+      - ./src:/app
+    
+    
