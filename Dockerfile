@@ -8,5 +8,8 @@ COPY ./src .
 
 RUN dotnet restore
 
+FROM base as test
+
+RUN dotnet test
 
 
